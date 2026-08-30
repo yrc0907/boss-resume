@@ -4,6 +4,7 @@ import { getPlatformAdapter } from "./adapters";
 import type { PlatformAdapter } from "./adapters/types";
 
 const marked = new Set<Element>();
+const matchedJobs = new Map<Element, JobCandidate>();
 let settings: Settings = DEFAULT_SETTINGS;
 let matchCount = 0;
 const adapter: PlatformAdapter | null = getPlatformAdapter(location.hostname);
@@ -38,6 +39,7 @@ function scanCards(): void {
     job.score = scoreJob(job, settings);
     if (job.score >= settings.minScore && !containsBlacklist(job)) {
       matchCount += 1;
+      matchedJobs.set(card, job);
       decorateCard(card, job);
     } else {
       card.classList.add("bjh-job-muted");
@@ -114,7 +116,8 @@ function injectToolbar(): void {
   if (document.querySelector(".bjh-toolbar")) return;
   const toolbar = document.createElement("aside");
   toolbar.className = "bjh-toolbar";
-  toolbar.innerHTML = `<strong>${adapter?.label ?? "投递准备"}</strong><span class="bjh-toolbar-count">扫描中</span><button type="button" class="bjh-refresh">重新扫描</button>`;
+  toolbar.innerHTML = `<strong>${adapter?.label ?? "投递准备"}</strong><span class="bjh-toolbar-count">扫描中</span><button type="button" class="bjh-add-all">加入全部匹配</button><button type="button" class="bjh-refresh">重新扫描</button>`;
+  toolbar.querySelector(".bjh-add-all")?.addEventListener("click", () => void addAllMatched());
   toolbar.querySelector(".bjh-refresh")?.addEventListener("click", () => {
     resetDecorations();
     scanCards();
@@ -124,8 +127,27 @@ function injectToolbar(): void {
 
 function resetDecorations(): void {
   marked.clear();
+  matchedJobs.clear();
   document.querySelectorAll(".bjh-card-actions, .bjh-match-badge").forEach((node) => node.remove());
   document.querySelectorAll(".bjh-job-match, .bjh-job-muted").forEach((node) => node.classList.remove("bjh-job-match", "bjh-job-muted"));
+}
+
+/** 将当前页面已经通过筛选的岗位批量加入本地队列，避免逐卡点击但不触发任何外部投递。 */
+async function addAllMatched(): Promise<void> {
+  const button = document.querySelector(".bjh-add-all") as HTMLButtonElement | null;
+  if (!button || !matchedJobs.size) return;
+  button.disabled = true;
+  const jobs = Array.from(matchedJobs.values());
+  let added = 0;
+  for (const job of jobs) {
+    const response = await chrome.runtime.sendMessage<unknown>({ type: "ADD_TO_QUEUE", job: { ...job, status: "queued" } });
+    if (!isErrorResponse(response)) added += 1;
+  }
+  button.textContent = `已加入 ${added} 条`;
+  window.setTimeout(() => {
+    button.disabled = false;
+    button.textContent = "加入全部匹配";
+  }, 1800);
 }
 
 function isErrorResponse(value: unknown): value is { error: string } {

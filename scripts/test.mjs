@@ -10,6 +10,7 @@ for (const host of ["zhaopin.com", "51job.com", "liepin.com", "shixiseng.com", "
   assert.ok(manifest.host_permissions.some((permission) => permission.includes(host)), `missing host permission: ${host}`);
 }
 assert.match(content, /bjh-queue-button/);
+assert.match(content, /bjh-add-all/);
 assert.doesNotMatch(content, /立即沟通/);
 assert.doesNotMatch(content, /fetch\(/);
 console.log("Local extension checks passed");
