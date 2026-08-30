@@ -124,9 +124,9 @@ function createQueueItem(item: QueueItem): HTMLElement {
   openLink.href = item.job.detailUrl;
   openLink.addEventListener("click", async (event) => {
     event.preventDefault();
-    await chrome.runtime.sendMessage({ type: "UPDATE_QUEUE_STATE", id: item.job.id, state: "opened" });
+    // 新标签页必须在用户手势同步阶段打开，避免等待本地消息后被浏览器拦截。
     window.open(item.job.detailUrl, "_blank", "noopener,noreferrer");
-    await renderQueue();
+    void chrome.runtime.sendMessage({ type: "UPDATE_QUEUE_STATE", id: item.job.id, state: "opened" }).then(() => renderQueue());
   });
   article.querySelector("[data-copy]")?.addEventListener("click", async () => {
     await navigator.clipboard.writeText(item.preparedGreeting);
