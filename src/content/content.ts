@@ -13,6 +13,7 @@ let matchCount = 0;
 let lastCardCount = 0;
 let lastScanAt = "";
 let preloadRunning = false;
+let lastSelectorHits: Record<string, number> = {};
 const adapter: PlatformAdapter | null = getPlatformAdapter(location.hostname);
 
 /** Boss 页面内容脚本：只读取岗位卡片并提供本地筛选/排队按钮，不执行发送动作。 */
@@ -38,7 +39,7 @@ async function init(): Promise<void> {
       return;
     }
     if (type === "GET_CONTENT_STATUS") {
-      sendResponse({ platform: adapter.label, cardCount: lastCardCount, matchCount, lastScanAt });
+      sendResponse({ platform: adapter.label, adapterKey: adapter.key, route: `${location.origin}${location.pathname}`, cardCount: lastCardCount, matchCount, lastScanAt, selectorHits: lastSelectorHits });
     }
   });
 }
@@ -46,6 +47,7 @@ async function init(): Promise<void> {
 function scanCards(): void {
   if (!adapter) return;
   const cards = Array.from(new Set(adapter.cardSelectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)))));
+  lastSelectorHits = Object.fromEntries(adapter.cardSelectors.map((selector) => [selector, document.querySelectorAll(selector).length]));
   lastCardCount = cards.length;
   lastScanAt = new Date().toISOString();
   matchCount = document.querySelectorAll(".bjh-job-match").length;

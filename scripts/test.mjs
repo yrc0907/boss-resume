@@ -14,6 +14,7 @@ for (const host of ["zhaopin.com", "51job.com", "liepin.com", "shixiseng.com", "
 assert.match(content, /bjh-queue-button/);
 assert.match(content, /bjh-add-all/);
 assert.match(content, /bjh-load-more/);
+assert.match(content, /selectorHits/);
 assert.doesNotMatch(content, /立即沟通/);
 assert.doesNotMatch(content, /fetch\(/);
 assert.match(bridge, /BOSS_JOB_API_RESPONSE/);

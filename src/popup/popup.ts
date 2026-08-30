@@ -9,6 +9,7 @@ async function init(): Promise<void> {
   bindSettings();
   bindQueueActions();
   bindExport();
+  bindDiagnostics();
   await renderPageStatus();
   await renderQueue();
 }
@@ -77,6 +78,23 @@ async function renderPageStatus(): Promise<void> {
   } catch {
     statusNode.textContent = "当前页面未加载投递助手";
   }
+}
+
+/** 导出当前页面的选择器命中诊断，只保存计数和路由，不导出岗位正文或账号数据。 */
+function bindDiagnostics(): void {
+  document.querySelector("#export-diagnostics")?.addEventListener("click", async () => {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabId = tabs[0]?.id;
+    if (tabId === undefined) return;
+    const status = await chrome.tabs.sendMessage<Record<string, unknown>>(tabId, { type: "GET_CONTENT_STATUS" });
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), ...status }, null, 2)], { type: "application/json" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `boss-job-diagnostics-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus("诊断已导出");
+  });
 }
 
 async function renderQueue(): Promise<void> {
