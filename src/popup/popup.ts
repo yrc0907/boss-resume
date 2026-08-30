@@ -51,8 +51,8 @@ function bindExport(): void {
   document.querySelector("#export-queue")?.addEventListener("click", async () => {
     const queue = await chrome.runtime.sendMessage<QueueItem[]>({ type: "GET_QUEUE" });
     const rows = [
-      ["平台", "岗位", "公司", "地点", "薪资", "匹配分", "状态", "岗位链接"],
-      ...queue.map((item) => [item.job.platform || "未知", item.job.title, item.job.company, item.job.location, item.job.salary, String(item.job.score), item.state, item.job.detailUrl]),
+      ["平台", "岗位", "公司", "地点", "薪资", "匹配分", "入口类型", "状态", "岗位链接"],
+      ...queue.map((item) => [item.job.platform || "未知", item.job.title, item.job.company, item.job.location, item.job.salary, String(item.job.score), item.job.applicationType || "unknown", item.state, item.job.detailUrl]),
     ];
     const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
@@ -117,7 +117,7 @@ async function renderQueue(): Promise<void> {
 function createQueueItem(item: QueueItem): HTMLElement {
   const article = document.createElement("article");
   article.className = "queue-item";
-  article.innerHTML = `<h3></h3><p></p><small>匹配 ${item.job.score} 分 · ${item.state === "queued" ? "待准备" : item.state}</small><div class="queue-actions"><a data-open>打开岗位</a><button type="button" data-copy>复制招呼语</button><button type="button" data-done>${item.state === "done" ? "已处理" : "标记已处理"}</button><button type="button" data-remove>移除</button></div>`;
+  article.innerHTML = `<h3></h3><p></p><small>匹配 ${item.job.score} 分 · ${item.job.applicationType || "unknown"} · ${item.state === "queued" ? "待准备" : item.state}</small><div class="queue-actions"><a data-open>打开岗位</a><button type="button" data-copy>复制招呼语</button><button type="button" data-done>${item.state === "done" ? "已处理" : "标记已处理"}</button><button type="button" data-remove>移除</button></div>`;
   article.querySelector("h3")!.textContent = `${item.job.title} · ${item.job.company}`;
   article.querySelector("p")!.textContent = `${item.job.location || "未知地点"} · ${item.job.salary || "薪资待确认"}`;
   const openLink = article.querySelector("[data-open]") as HTMLAnchorElement;
