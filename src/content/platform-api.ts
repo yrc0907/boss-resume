@@ -58,9 +58,28 @@ function dedupe(jobs: JobCandidate[]): JobCandidate[] {
   const unique = new Map<string, JobCandidate>();
   for (const job of jobs) {
     const previous = unique.get(job.id);
-    unique.set(job.id, previous ? { ...previous, ...job, tags: Array.from(new Set([...previous.tags, ...job.tags])) } : job);
+    unique.set(job.id, previous ? mergeNonEmpty(previous, job) : job);
   }
   return Array.from(unique.values());
+}
+
+/** 猎聘接口可能重复推送摘要和详情，只用非空字段覆盖，避免完整数据被清空。 */
+function mergeNonEmpty(previous: JobCandidate, next: JobCandidate): JobCandidate {
+  return {
+    ...previous,
+    title: next.title || previous.title,
+    company: next.company || previous.company,
+    salary: next.salary || previous.salary,
+    location: next.location || previous.location,
+    experience: next.experience || previous.experience,
+    education: next.education || previous.education,
+    description: next.description || previous.description,
+    recruiter: next.recruiter || previous.recruiter,
+    recruiterTitle: next.recruiterTitle || previous.recruiterTitle,
+    detailUrl: next.detailUrl || previous.detailUrl,
+    identityKeys: Array.from(new Set([...(previous.identityKeys || []), ...(next.identityKeys || [])])),
+    tags: Array.from(new Set([...previous.tags, ...next.tags].filter(Boolean))),
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

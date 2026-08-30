@@ -85,10 +85,14 @@ assert.ok(zhipin?.routes?.detail.some((route) => route.test("/job_detail/abc123"
 assert.equal(zhipin?.routes?.list.some((route) => route.test("/web/geek/chat")), false);
 assert.ok(zhipin?.routes?.list.some((route) => route.test("/web/geek/job")));
 
-const liepinJobs = extractLiepinJobs({ data: { data: { jobCardList: [{ job: { jobId: "lp-001", title: "供应链运营", salary: "10-15K", dq: "广州", requireWorkYears: "3-5年", requireEduLevel: "本科", link: "https://www.liepin.com/job/lp-001" }, comp: { compId: "co-001", compName: "华南物流" }, recruiter: { recruiterId: "hr-001", recruiterName: "王经理", recruiterTitle: "招聘负责人" } }] } } }, "https://www.liepin.com/search");
+const liepinJobs = extractLiepinJobs({ data: { data: { jobCardList: [
+  { job: { jobId: "lp-001", title: "供应链运营", salary: "10-15K", dq: "广州", requireWorkYears: "3-5年", requireEduLevel: "本科", link: "https://www.liepin.com/job/lp-001" }, comp: { compId: "co-001", compName: "华南物流" }, recruiter: { recruiterId: "hr-001", recruiterName: "王经理", recruiterTitle: "招聘负责人" } },
+  { job: { jobId: "lp-001", title: "供应链运营" }, comp: { compId: "co-001", compName: "华南物流" }, recruiter: { recruiterId: "hr-001", recruiterName: "王经理" } },
+] } } }, "https://www.liepin.com/search");
 assert.equal(liepinJobs.length, 1);
 assert.equal(liepinJobs[0].company, "华南物流");
 assert.equal(liepinJobs[0].recruiter, "王经理");
 assert.equal(liepinJobs[0].platform, "liepin");
+assert.equal(liepinJobs[0].salary, "10-15K");
 
 console.log("API and adapter contract checks passed");
