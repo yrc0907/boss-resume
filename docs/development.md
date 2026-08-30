@@ -33,7 +33,7 @@
 
 - TypeScript：共享类型、评分规则、平台适配逻辑。
 - Chrome Manifest V3：扩展权限、Content Script、Service Worker、Popup。
-- esbuild：将三个入口构建为浏览器可加载脚本。
+- esbuild：将后台、内容脚本、页面桥接和弹窗四个入口构建为浏览器可加载脚本。
 - 原生 DOM API：页面读取、节点标记和按钮注入，不引入 Playwright/Puppeteer 运行时。
 - `chrome.storage.local`：本地保存设置、候选队列和统计。
 
