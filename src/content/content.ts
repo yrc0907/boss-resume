@@ -3,6 +3,7 @@ import { DEFAULT_SETTINGS, type JobCandidate, type Settings } from "../shared/ty
 import { getPlatformAdapter } from "./adapters";
 import type { PlatformAdapter } from "./adapters/types";
 import { extractBossJobs, findMatchingBossJob, mergeJobCandidate } from "./boss-api";
+import { parseCardJob } from "./dom-parser";
 
 const marked = new Set<Element>();
 const matchedJobs = new Map<Element, JobCandidate>();
@@ -66,35 +67,8 @@ function scanCards(): void {
 
 function parseJob(card: Element): JobCandidate | null {
   if (!adapter) return null;
-  const read = (...selectors: string[]): string => {
-    for (const selector of selectors) {
-      const value = card.querySelector(selector)?.textContent?.trim();
-      if (value) return value.replace(/\s+/g, " ");
-    }
-    return "";
-  };
-  const title = read(...adapter.fields.title);
-  const company = read(...adapter.fields.company);
-  if (!title || !company) return null;
-  const detailUrl = (card.querySelector("a[href]") as HTMLAnchorElement | null)?.href ?? location.href;
-  const domJob: JobCandidate = {
-    id: card.getAttribute("data-job-id") || card.getAttribute("data-id") || detailUrl,
-    title,
-    company,
-    salary: read(...adapter.fields.salary),
-    location: read(...adapter.fields.location),
-    experience: read(...adapter.fields.experience),
-    education: read(...adapter.fields.education),
-    tags: adapter.fields.tags.flatMap((selector) => Array.from(card.querySelectorAll(selector))).map((item) => item.textContent?.trim() || "").filter(Boolean),
-    detailUrl,
-    description: read(...adapter.fields.description) || card.textContent?.trim() || "",
-    score: 0,
-    status: "new",
-    capturedAt: new Date().toISOString(),
-    platform: adapter.key,
-    source: "dom",
-    sourceUrl: location.href,
-  };
+  const domJob = parseCardJob(card, adapter, location.href);
+  if (!domJob) return null;
   const apiJob = adapter.key === "zhipin" ? findMatchingBossJob(domJob, apiJobs.values()) : null;
   return apiJob ? mergeJobCandidate(domJob, apiJob) : domJob;
 }
