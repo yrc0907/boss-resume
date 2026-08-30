@@ -17,7 +17,7 @@
 | P1 | 应届生求职网 | yingjiesheng.com | 校招补充 |
 | P1 | 国聘 | iguopin.com | 校招补充 |
 | P1 | 拉勾招聘 | lagou.com | 技术岗位补充 |
-| P2 | 58 同城招聘 | zhaopin.com / 58.com | 页面差异较大 |
+| P2 | 58 同城招聘 | 58.com | 页面差异较大 |
 | P2 | 脉脉 | maimai.cn | 页面差异较大 |
 | 后续 | LinkedIn | linkedin.com | 暂缓 |
 
