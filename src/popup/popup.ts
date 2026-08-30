@@ -99,16 +99,27 @@ async function renderQueue(): Promise<void> {
 function createQueueItem(item: QueueItem): HTMLElement {
   const article = document.createElement("article");
   article.className = "queue-item";
-  article.innerHTML = `<h3></h3><p></p><small>匹配 ${item.job.score} 分 · ${item.state === "queued" ? "待准备" : item.state}</small><div class="queue-actions"><a data-open target="_blank" rel="noreferrer">打开岗位</a><button type="button" data-copy>复制招呼语</button><button type="button" data-remove>移除</button></div>`;
+  article.innerHTML = `<h3></h3><p></p><small>匹配 ${item.job.score} 分 · ${item.state === "queued" ? "待准备" : item.state}</small><div class="queue-actions"><a data-open>打开岗位</a><button type="button" data-copy>复制招呼语</button><button type="button" data-done>${item.state === "done" ? "已处理" : "标记已处理"}</button><button type="button" data-remove>移除</button></div>`;
   article.querySelector("h3")!.textContent = `${item.job.title} · ${item.job.company}`;
   article.querySelector("p")!.textContent = `${item.job.location || "未知地点"} · ${item.job.salary || "薪资待确认"}`;
-  (article.querySelector("[data-open]") as HTMLAnchorElement).href = item.job.detailUrl;
+  const openLink = article.querySelector("[data-open]") as HTMLAnchorElement;
+  openLink.href = item.job.detailUrl;
+  openLink.addEventListener("click", async (event) => {
+    event.preventDefault();
+    await chrome.runtime.sendMessage({ type: "UPDATE_QUEUE_STATE", id: item.job.id, state: "opened" });
+    window.open(item.job.detailUrl, "_blank", "noopener,noreferrer");
+    await renderQueue();
+  });
   article.querySelector("[data-copy]")?.addEventListener("click", async () => {
     await navigator.clipboard.writeText(item.preparedGreeting);
     setStatus("招呼语已复制");
   });
   article.querySelector("[data-remove]")?.addEventListener("click", async () => {
     await chrome.runtime.sendMessage({ type: "REMOVE_FROM_QUEUE", id: item.job.id });
+    await renderQueue();
+  });
+  article.querySelector("[data-done]")?.addEventListener("click", async () => {
+    await chrome.runtime.sendMessage({ type: "UPDATE_QUEUE_STATE", id: item.job.id, state: "done" });
     await renderQueue();
   });
   return article;
