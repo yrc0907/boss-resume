@@ -3,6 +3,7 @@ import type { PlatformAdapter } from "./adapters/types";
 
 /** 解析岗位卡片的统一入口：选择器由平台提供，身份键和文本兜底由这里负责。 */
 export function parseCardJob(card: Element, adapter: PlatformAdapter, sourceUrl: string): JobCandidate | null {
+  const cardLines = textLines(card);
   const read = (selectors: string[]): string => {
     for (const selector of selectors) {
       const text = card.querySelector(selector)?.textContent?.trim().replace(/\s+/g, " ") || "";
@@ -11,8 +12,8 @@ export function parseCardJob(card: Element, adapter: PlatformAdapter, sourceUrl:
     return "";
   };
   const salary = read(adapter.fields.salary) || readByClassFragment(card, "salary");
-  const title = cleanJobTitle(read(adapter.fields.title) || readByClassFragment(card, "job-name") || readByClassFragment(card, "job-title") || firstHeading(card), salary);
-  const company = read(adapter.fields.company) || readByClassFragment(card, "company") || readByClassFragment(card, "boss-name");
+  const title = cleanJobTitle(read(adapter.fields.title) || readByClassFragment(card, "job-name") || readByClassFragment(card, "job-title") || firstHeading(card) || cardLines[0] || "", salary);
+  const company = read(adapter.fields.company) || readByClassFragment(card, "company") || readByClassFragment(card, "boss-name") || cardLines.find((line) => line !== title && line.length <= 80) || "";
   if (!title || !company) return null;
   const detailAnchor = card.querySelector("a[href*='/job_detail/'], a.job-name, a[href]") as HTMLAnchorElement | null;
   const anchorHref = detailAnchor?.href || "";
@@ -41,11 +42,25 @@ export function parseCardJob(card: Element, adapter: PlatformAdapter, sourceUrl:
 
 function readByClassFragment(root: Element, fragment: string): string {
   const selector = `[class*="${fragment}"]`;
-  return root.querySelector(selector)?.textContent?.trim().replace(/\s+/g, " ") || "";
+  const candidates = Array.from(root.querySelectorAll(selector))
+    .map((element) => element.textContent?.trim().replace(/\s+/g, " ") || "")
+    .filter(Boolean)
+    .sort((left, right) => left.length - right.length);
+  return candidates[0] || "";
 }
 
 function firstHeading(root: Element): string {
-  return root.querySelector("h1, h2, h3, h4")?.textContent?.trim().replace(/\s+/g, " ") || "";
+  return Array.from(root.querySelectorAll("h1, h2, h3, h4"))
+    .map((element) => element.textContent?.trim().replace(/\s+/g, " ") || "")
+    .filter(Boolean)
+    .sort((left, right) => left.length - right.length)[0] || "";
+}
+
+function textLines(root: Element): string[] {
+  return (root.textContent || "")
+    .split(/\r?\n|\u2022|·/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter((line) => line.length > 1 && line.length <= 160);
 }
 
 /** Boss 卡片偶尔把薪资拼进岗位名，先清洗再用于匹配签名。 */
