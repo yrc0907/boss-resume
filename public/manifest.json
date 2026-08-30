@@ -5,6 +5,7 @@
   "description": "岗位筛选、投递准备与本地记录助手。最终发送由用户手动确认。",
   "permissions": ["storage", "tabs"],
   "host_permissions": [
+    "http://localhost/*", "http://127.0.0.1/*",
     "https://www.zhipin.com/*", "https://*.zhipin.com/*",
     "https://www.zhaopin.com/*", "https://*.zhaopin.com/*",
     "https://www.51job.com/*", "https://*.51job.com/*",
@@ -25,6 +26,7 @@
   "content_scripts": [
     {
       "matches": [
+        "http://localhost/*", "http://127.0.0.1/*",
         "https://www.zhipin.com/*", "https://*.zhipin.com/*",
         "https://www.zhaopin.com/*", "https://*.zhaopin.com/*",
         "https://www.51job.com/*", "https://*.51job.com/*",

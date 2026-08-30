@@ -71,3 +71,11 @@
 - 方案：将每个平台拆成 `src/content/adapters/` 下的独立文件，由注册入口按域名选择 `cardSelectors` 和字段选择器；通用层继续只处理评分和队列。
 - 性能变化：每个页面只遍历当前平台的选择器，避免无关站点查询。
 - 验证：Manifest 已覆盖 11 个目标域名，构建测试校验所有 host permission；真实 DOM 仍需逐站人工验收。
+
+### scenario_id: LOCAL_DEMO_HOST
+
+- 问题：直接打开 `file://` 演示页时，Chrome 内容脚本不会按真实平台适配器运行。
+- 根因：扩展匹配规则默认只覆盖招聘网站 HTTPS 域名，且文件页没有平台 hostname。
+- 方案：增加受限的 localhost 演示适配器和 `python -m http.server` 启动方式；不增加任何真实平台权限。
+- 性能变化：只对本地演示页面增加一次精确 class 查询。
+- 验证：构建测试校验 localhost match；Playwright 加载 `dist` 后访问 `http://localhost:8087/boss-mock.html`，页面出现本地演示浮层和 2 个匹配岗位；真实平台权限不受影响。

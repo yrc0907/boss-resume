@@ -25,8 +25,9 @@ pnpm build
 
 ## 本地验收
 
-1. 直接用 Chrome 打开 `demo/boss-mock.html`。
-2. 加载 `dist` 扩展后刷新演示页面。
+1. 在项目目录运行 `python -m http.server 4173 --directory demo`。
+2. 用 Chrome 打开 `http://localhost:4173/boss-mock.html`。
+3. 加载 `dist` 扩展后刷新演示页面。
 3. 页面右下角会出现“投递准备”浮层；匹配岗位会显示分数和“加入投递准备”。
 4. 点击扩展图标查看队列、编辑筛选条件、复制招呼语。
 
