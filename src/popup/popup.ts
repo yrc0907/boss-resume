@@ -1,5 +1,7 @@
 import { DEFAULT_SETTINGS, type QueueItem, type ResumeProfile, type Settings } from "../shared/types";
 
+let currentResumeProfiles: ResumeProfile[] = DEFAULT_SETTINGS.resumeProfiles;
+
 /** 弹窗控制器：编辑本地筛选条件、查看候选队列并复制准备好的招呼语。 */
 void init();
 
@@ -58,7 +60,7 @@ function bindExport(): void {
     const queue = await chrome.runtime.sendMessage<QueueItem[]>({ type: "GET_QUEUE" });
     const rows = [
       ["平台", "岗位", "公司", "地点", "薪资", "匹配分", "入口类型", "简历版本", "状态", "岗位链接"],
-      ...queue.map((item) => [item.job.platform || "未知", item.job.title, item.job.company, item.job.location, item.job.salary, String(item.job.score), item.job.applicationType || "unknown", item.resumeProfileId, item.state, item.job.detailUrl]),
+      ...queue.map((item) => [item.job.platform || "未知", item.job.title, item.job.company, item.job.location, item.job.salary, String(item.job.score), item.job.applicationType || "unknown", currentResumeProfiles.find((profile) => profile.id === item.resumeProfileId)?.label || item.resumeProfileId, item.state, item.job.detailUrl]),
     ];
     const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
@@ -163,8 +165,6 @@ function createQueueItem(item: QueueItem): HTMLElement {
 function splitList(input: string): string[] {
   return input.split(/[,，\n]/).map((item) => item.trim()).filter(Boolean);
 }
-
-let currentResumeProfiles: ResumeProfile[] = DEFAULT_SETTINGS.resumeProfiles;
 
 function parseResumeProfiles(input: string): ResumeProfile[] {
   const labels = splitList(input);
