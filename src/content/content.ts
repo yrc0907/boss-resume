@@ -152,7 +152,7 @@ function decorateCard(card: Element, job: JobCandidate): void {
     try {
       const response = await chrome.runtime.sendMessage<unknown>({ type: "ADD_TO_QUEUE", job: { ...job, status: "queued" } });
       if (isErrorResponse(response)) throw new Error(response.error);
-      button.textContent = "已加入队列";
+      button.textContent = isQueueMutation(response) && !response.added ? "已在队列" : "已加入队列";
       button.classList.add("is-added");
     } catch (error) {
       button.disabled = false;
@@ -195,7 +195,7 @@ async function addAllMatched(): Promise<void> {
   let added = 0;
   for (const job of jobs) {
     const response = await chrome.runtime.sendMessage<unknown>({ type: "ADD_TO_QUEUE", job: { ...job, status: "queued" } });
-    if (!isErrorResponse(response)) added += 1;
+    if (!isErrorResponse(response) && isQueueMutation(response) && response.added) added += 1;
   }
   button.textContent = `已加入 ${added} 条`;
   window.setTimeout(() => {
@@ -239,6 +239,10 @@ function sleep(milliseconds: number): Promise<void> {
 
 function isErrorResponse(value: unknown): value is { error: string } {
   return typeof value === "object" && value !== null && "error" in value && typeof (value as { error?: unknown }).error === "string";
+}
+
+function isQueueMutation(value: unknown): value is { queue: unknown[]; added: boolean } {
+  return typeof value === "object" && value !== null && "added" in value && typeof (value as { added?: unknown }).added === "boolean" && "queue" in value;
 }
 
 function updateToolbarCount(count: number): void {

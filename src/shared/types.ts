@@ -51,6 +51,12 @@ export interface QueueItem {
   resumeProfileId: string;
 }
 
+/** 队列写入结果：同时返回最新队列和本次是否真的新增。 */
+export interface QueueMutationResult {
+  queue: QueueItem[];
+  added: boolean;
+}
+
 export const DEFAULT_SETTINGS: Settings = {
   keywords: ["货代", "物流", "供应链"],
   locations: ["深圳", "广州"],

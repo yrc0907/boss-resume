@@ -4,6 +4,7 @@ import type { PlatformAdapter } from "./adapters/types";
 /** 解析岗位卡片的统一入口：选择器由平台提供，身份键和文本兜底由这里负责。 */
 export function parseCardJob(card: Element, adapter: PlatformAdapter, sourceUrl: string): JobCandidate | null {
   const cardLines = textLines(card);
+  const cardText = card.textContent?.replace(/\s+/g, " ").trim() || "";
   const read = (selectors: string[]): string => {
     for (const selector of selectors) {
       const text = card.querySelector(selector)?.textContent?.trim().replace(/\s+/g, " ") || "";
@@ -37,6 +38,7 @@ export function parseCardJob(card: Element, adapter: PlatformAdapter, sourceUrl:
     source: "dom",
     sourceUrl,
     identityKeys,
+    applicationType: inferApplicationType(cardText),
   };
 }
 
@@ -61,6 +63,12 @@ function textLines(root: Element): string[] {
     .split(/\r?\n|\u2022|·/)
     .map((line) => line.replace(/\s+/g, " ").trim())
     .filter((line) => line.length > 1 && line.length <= 160);
+}
+
+function inferApplicationType(text: string): JobCandidate["applicationType"] {
+  if (/网申|在线申请|立即申请/.test(text)) return "application";
+  if (/立即沟通|聊一聊|打招呼/.test(text)) return "chat";
+  return "unknown";
 }
 
 /** Boss 卡片偶尔把薪资拼进岗位名，先清洗再用于匹配签名。 */

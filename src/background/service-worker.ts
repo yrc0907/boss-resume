@@ -1,5 +1,5 @@
 import { renderGreeting } from "../shared/scoring";
-import { DEFAULT_SETTINGS, type QueueItem, type RuntimeMessage, type Settings } from "../shared/types";
+import { DEFAULT_SETTINGS, type QueueItem, type QueueMutationResult, type RuntimeMessage, type Settings } from "../shared/types";
 
 const SETTINGS_KEY = "settings";
 const QUEUE_KEY = "queue";
@@ -49,7 +49,7 @@ async function handleMessage(message: RuntimeMessage): Promise<unknown> {
     case "ADD_TO_QUEUE": {
       const settings = await getSettings();
       const queue = await getQueue();
-      if (queue.some((item) => item.job.id === message.job.id)) return queue;
+      if (queue.some((item) => item.job.id === message.job.id)) return { queue, added: false } satisfies QueueMutationResult;
       if (queue.length >= settings.maxQueueSize) throw new Error(`队列已达到 ${settings.maxQueueSize} 条上限`);
       const next: QueueItem[] = [
         ...queue,
@@ -63,7 +63,7 @@ async function handleMessage(message: RuntimeMessage): Promise<unknown> {
       ];
       await chrome.storage.local.set({ [QUEUE_KEY]: next });
       await incrementStats("queued");
-      return next;
+      return { queue: next, added: true } satisfies QueueMutationResult;
     }
     case "UPDATE_QUEUE_STATE": {
       const queue = await getQueue();
