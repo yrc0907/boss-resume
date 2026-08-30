@@ -32,6 +32,14 @@ export interface Settings {
   greetingTemplate: string;
   maxQueueSize: number;
   autoScan: boolean;
+  resumeProfiles: ResumeProfile[];
+  defaultResumeId: string;
+}
+
+/** 本地简历版本索引：只保存用户自定义名称，不保存文件内容或路径。 */
+export interface ResumeProfile {
+  id: string;
+  label: string;
 }
 
 /** 投递准备队列项：记录准备状态，最终发送由用户手动完成。 */
@@ -40,6 +48,7 @@ export interface QueueItem {
   preparedGreeting: string;
   addedAt: string;
   state: "queued" | "prepared" | "opened" | "done";
+  resumeProfileId: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -51,6 +60,8 @@ export const DEFAULT_SETTINGS: Settings = {
     "您好，我对贵司的{{title}}岗位很感兴趣。我有相关业务经验，希望有机会进一步沟通。",
   maxQueueSize: 30,
   autoScan: false,
+  resumeProfiles: [{ id: "default", label: "默认简历" }],
+  defaultResumeId: "default",
 };
 
 export type RuntimeMessage =
@@ -59,6 +70,7 @@ export type RuntimeMessage =
   | { type: "GET_QUEUE" }
   | { type: "ADD_TO_QUEUE"; job: JobCandidate }
   | { type: "UPDATE_QUEUE_STATE"; id: string; state: QueueItem["state"] }
+  | { type: "UPDATE_QUEUE_RESUME"; id: string; resumeProfileId: string }
   | { type: "REMOVE_FROM_QUEUE"; id: string }
   | { type: "CLEAR_QUEUE" }
   | { type: "GET_STATS" };

@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, type QueueItem, type Settings } from "../shared/types";
+import { DEFAULT_SETTINGS, type QueueItem, type ResumeProfile, type Settings } from "../shared/types";
 
 /** 弹窗控制器：编辑本地筛选条件、查看候选队列并复制准备好的招呼语。 */
 void init();
@@ -6,6 +6,7 @@ void init();
 async function init(): Promise<void> {
   const settings = await chrome.runtime.sendMessage<Settings>({ type: "GET_SETTINGS" });
   fillSettings({ ...DEFAULT_SETTINGS, ...settings });
+  currentResumeProfiles = settings.resumeProfiles;
   bindSettings();
   bindQueueActions();
   bindExport();
@@ -19,6 +20,7 @@ function fillSettings(settings: Settings): void {
   setValue("locations", settings.locations.join(", "));
   setValue("blacklist", settings.blacklist.join(", "));
   setValue("min-score", String(settings.minScore));
+  setValue("resume-profiles", settings.resumeProfiles.map((profile) => profile.label).join(", "));
   setValue("greeting", settings.greetingTemplate);
 }
 
@@ -32,7 +34,11 @@ function bindSettings(): void {
       greetingTemplate: value("greeting") || DEFAULT_SETTINGS.greetingTemplate,
       maxQueueSize: DEFAULT_SETTINGS.maxQueueSize,
       autoScan: false,
+      resumeProfiles: parseResumeProfiles(value("resume-profiles")),
+      defaultResumeId: DEFAULT_SETTINGS.defaultResumeId,
     };
+    next.defaultResumeId = next.resumeProfiles[0]?.id || DEFAULT_SETTINGS.defaultResumeId;
+    currentResumeProfiles = next.resumeProfiles;
     await chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", settings: next });
     setStatus("已保存筛选条件", true);
   });
@@ -51,8 +57,8 @@ function bindExport(): void {
   document.querySelector("#export-queue")?.addEventListener("click", async () => {
     const queue = await chrome.runtime.sendMessage<QueueItem[]>({ type: "GET_QUEUE" });
     const rows = [
-      ["平台", "岗位", "公司", "地点", "薪资", "匹配分", "入口类型", "状态", "岗位链接"],
-      ...queue.map((item) => [item.job.platform || "未知", item.job.title, item.job.company, item.job.location, item.job.salary, String(item.job.score), item.job.applicationType || "unknown", item.state, item.job.detailUrl]),
+      ["平台", "岗位", "公司", "地点", "薪资", "匹配分", "入口类型", "简历版本", "状态", "岗位链接"],
+      ...queue.map((item) => [item.job.platform || "未知", item.job.title, item.job.company, item.job.location, item.job.salary, String(item.job.score), item.job.applicationType || "unknown", item.resumeProfileId, item.state, item.job.detailUrl]),
     ];
     const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
@@ -117,9 +123,20 @@ async function renderQueue(): Promise<void> {
 function createQueueItem(item: QueueItem): HTMLElement {
   const article = document.createElement("article");
   article.className = "queue-item";
-  article.innerHTML = `<h3></h3><p></p><small>匹配 ${item.job.score} 分 · ${item.job.applicationType || "unknown"} · ${item.state === "queued" ? "待准备" : item.state}</small><div class="queue-actions"><a data-open>打开岗位</a><button type="button" data-copy>复制招呼语</button><button type="button" data-done>${item.state === "done" ? "已处理" : "标记已处理"}</button><button type="button" data-remove>移除</button></div>`;
+  article.innerHTML = `<h3></h3><p></p><small>匹配 ${item.job.score} 分 · ${item.job.applicationType || "unknown"} · ${item.state === "queued" ? "待准备" : item.state}</small><label class="queue-resume">简历<select data-resume></select></label><div class="queue-actions"><a data-open>打开岗位</a><button type="button" data-copy>复制招呼语</button><button type="button" data-done>${item.state === "done" ? "已处理" : "标记已处理"}</button><button type="button" data-remove>移除</button></div>`;
   article.querySelector("h3")!.textContent = `${item.job.title} · ${item.job.company}`;
   article.querySelector("p")!.textContent = `${item.job.location || "未知地点"} · ${item.job.salary || "薪资待确认"}`;
+  const resumeSelect = article.querySelector("[data-resume]") as HTMLSelectElement;
+  for (const profile of currentResumeProfiles) {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = profile.label;
+    option.selected = profile.id === (item.resumeProfileId || currentResumeProfiles[0]?.id);
+    resumeSelect.append(option);
+  }
+  resumeSelect.addEventListener("change", async () => {
+    await chrome.runtime.sendMessage({ type: "UPDATE_QUEUE_RESUME", id: item.job.id, resumeProfileId: resumeSelect.value });
+  });
   const openLink = article.querySelector("[data-open]") as HTMLAnchorElement;
   openLink.href = item.job.detailUrl;
   openLink.addEventListener("click", async (event) => {
@@ -145,6 +162,14 @@ function createQueueItem(item: QueueItem): HTMLElement {
 
 function splitList(input: string): string[] {
   return input.split(/[,，\n]/).map((item) => item.trim()).filter(Boolean);
+}
+
+let currentResumeProfiles: ResumeProfile[] = DEFAULT_SETTINGS.resumeProfiles;
+
+function parseResumeProfiles(input: string): ResumeProfile[] {
+  const labels = splitList(input);
+  const profiles = labels.map((label, index) => ({ id: `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "resume"}-${index}`, label }));
+  return profiles.length ? profiles : DEFAULT_SETTINGS.resumeProfiles;
 }
 
 function csvCell(value: string): string {

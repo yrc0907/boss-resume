@@ -21,12 +21,19 @@ chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) =
 
 async function getSettings(): Promise<Settings> {
   const stored = await chrome.storage.local.get({ [SETTINGS_KEY]: DEFAULT_SETTINGS });
-  return { ...DEFAULT_SETTINGS, ...(stored[SETTINGS_KEY] as Partial<Settings>) };
+  const merged = { ...DEFAULT_SETTINGS, ...(stored[SETTINGS_KEY] as Partial<Settings>) };
+  return {
+    ...merged,
+    resumeProfiles: Array.isArray(merged.resumeProfiles) && merged.resumeProfiles.length ? merged.resumeProfiles : DEFAULT_SETTINGS.resumeProfiles,
+    defaultResumeId: merged.defaultResumeId || DEFAULT_SETTINGS.defaultResumeId,
+  };
 }
 
 async function getQueue(): Promise<QueueItem[]> {
   const stored = await chrome.storage.local.get({ [QUEUE_KEY]: [] });
-  return Array.isArray(stored[QUEUE_KEY]) ? (stored[QUEUE_KEY] as QueueItem[]) : [];
+  if (!Array.isArray(stored[QUEUE_KEY])) return [];
+  const settings = await getSettings();
+  return (stored[QUEUE_KEY] as QueueItem[]).map((item) => ({ ...item, resumeProfileId: item.resumeProfileId || settings.defaultResumeId }));
 }
 
 async function handleMessage(message: RuntimeMessage): Promise<unknown> {
@@ -51,6 +58,7 @@ async function handleMessage(message: RuntimeMessage): Promise<unknown> {
           preparedGreeting: renderGreeting(settings.greetingTemplate, message.job),
           addedAt: new Date().toISOString(),
           state: "queued",
+          resumeProfileId: settings.defaultResumeId,
         },
       ];
       await chrome.storage.local.set({ [QUEUE_KEY]: next });
@@ -62,6 +70,14 @@ async function handleMessage(message: RuntimeMessage): Promise<unknown> {
       const next = queue.map((item) => item.job.id === message.id ? { ...item, state: message.state } : item);
       await chrome.storage.local.set({ [QUEUE_KEY]: next });
       if (message.state === "prepared") await incrementStats("prepared");
+      return next;
+    }
+    case "UPDATE_QUEUE_RESUME": {
+      const settings = await getSettings();
+      const selected = settings.resumeProfiles.some((profile) => profile.id === message.resumeProfileId) ? message.resumeProfileId : settings.defaultResumeId;
+      const queue = await getQueue();
+      const next = queue.map((item) => item.job.id === message.id ? { ...item, resumeProfileId: selected } : item);
+      await chrome.storage.local.set({ [QUEUE_KEY]: next });
       return next;
     }
     case "REMOVE_FROM_QUEUE": {
