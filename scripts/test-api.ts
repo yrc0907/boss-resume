@@ -9,6 +9,8 @@ const payload = {
     jobList: [
       {
         encryptJobId: "job-001",
+        securityId: "security-001",
+        lid: "lid-001",
         jobName: "货代操作主管",
         salaryDesc: "12-18K",
         locationName: "深圳·南山",
@@ -34,6 +36,7 @@ assert.equal(jobs[0].id, "job-001");
 assert.equal(jobs[0].salary, "12-18K");
 assert.equal(jobs[0].recruiter, "李经理");
 assert.equal(jobs[0].source, "api");
+assert.deepEqual(jobs[0].identityKeys, ["job-001", "security-001", "lid-001"]);
 
 const domJob: JobCandidate = {
   id: "job-001",
@@ -49,12 +52,14 @@ const domJob: JobCandidate = {
   score: 75,
   status: "new",
   capturedAt: new Date().toISOString(),
+  identityKeys: ["security-001"],
 };
 const matched = findMatchingBossJob(domJob, jobs);
 assert.ok(matched);
 const merged = mergeJobCandidate(domJob, matched);
 assert.equal(merged.description, "负责订舱、单证、客户沟通和供应链流程。");
 assert.equal(merged.salary, "12-18K");
+assert.deepEqual(merged.identityKeys, ["security-001", "job-001", "lid-001"]);
 assert.deepEqual(merged.tags, ["物流", "深圳·南山", "3-5年", "本科"]);
 
 for (const [host, key] of [

@@ -20,6 +20,7 @@ export interface JobCandidate {
   source?: "dom" | "api" | "merged";
   sourceUrl?: string;
   applicationType?: "chat" | "application" | "unknown";
+  identityKeys?: string[];
 }
 
 /** 用户筛选设置：只影响本地匹配与排序，不触发任何外部发送。 */

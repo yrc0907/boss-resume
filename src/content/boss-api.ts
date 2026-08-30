@@ -16,7 +16,8 @@ export function extractBossJobs(payload: unknown, sourceUrl: string): JobCandida
     const title = pick(candidate, TITLE_KEYS);
     const company = pick(candidate, COMPANY_KEYS);
     if (!title || !company) return;
-    const id = pick(candidate, ID_KEYS) || makeSignature(title, company, pick(candidate, SALARY_KEYS));
+    const identityKeys = ID_KEYS.map((key) => pick(candidate, [key])).filter(Boolean);
+    const id = identityKeys[0] || makeSignature(title, company, pick(candidate, SALARY_KEYS));
     if (seen.has(id)) return;
     seen.add(id);
     result.push({
@@ -39,6 +40,7 @@ export function extractBossJobs(payload: unknown, sourceUrl: string): JobCandida
       activeTime: pick(candidate, ["activeTimeDesc", "bossActiveTimeDesc", "bossActiveDesc"]),
       source: "api",
       sourceUrl,
+      identityKeys,
     });
   });
   return result;
@@ -50,6 +52,7 @@ export function mergeJobCandidate(domJob: JobCandidate, apiJob: JobCandidate): J
     ...domJob,
     ...apiJob,
     id: domJob.id || apiJob.id,
+    identityKeys: Array.from(new Set([...(domJob.identityKeys || []), ...(apiJob.identityKeys || []), domJob.id, apiJob.id].filter(Boolean))),
     detailUrl: safeUrl(domJob.detailUrl) ? domJob.detailUrl : apiJob.detailUrl,
     title: apiJob.title || domJob.title,
     company: apiJob.company || domJob.company,
@@ -66,7 +69,8 @@ export function mergeJobCandidate(domJob: JobCandidate, apiJob: JobCandidate): J
 /** 根据岗位 ID 或岗位名/公司签名查找接口数据，防止 DOM 顺序变化造成错配。 */
 export function findMatchingBossJob(domJob: JobCandidate, apiJobs: Iterable<JobCandidate>): JobCandidate | null {
   const list = Array.from(apiJobs);
-  const exact = list.find((job) => job.id && job.id === domJob.id);
+  const domKeys = new Set([domJob.id, ...(domJob.identityKeys || [])].filter(Boolean));
+  const exact = list.find((job) => [job.id, ...(job.identityKeys || [])].some((key) => domKeys.has(key)));
   if (exact) return exact;
   const signature = makeSignature(domJob.title, domJob.company, domJob.salary);
   const loose = makeSignature(domJob.title, domJob.company, "");
