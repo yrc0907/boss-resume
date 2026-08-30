@@ -78,4 +78,9 @@ for (const [host, key] of [
   assert.equal(getPlatformAdapter(host)?.key, key, `adapter route failed: ${host}`);
 }
 
+const zhipin = getPlatformAdapter("www.zhipin.com");
+assert.ok(zhipin?.routes?.list.some((route) => route.test("/web/geek/jobs")));
+assert.ok(zhipin?.routes?.detail.some((route) => route.test("/job_detail/abc123")));
+assert.equal(zhipin?.routes?.list.some((route) => route.test("/web/geek/chat")), false);
+
 console.log("API and adapter contract checks passed");

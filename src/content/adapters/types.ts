@@ -5,6 +5,7 @@ export interface PlatformAdapter {
   hosts: string[];
   cardSelectors: string[];
   fields: Record<"title" | "company" | "salary" | "location" | "description" | "experience" | "education" | "tags", string[]>;
+  routes?: { list: RegExp[]; detail: RegExp[] };
   detail?: {
     title: string[];
     company: string[];

@@ -14,6 +14,8 @@ let lastCardCount = 0;
 let lastScanAt = "";
 let preloadRunning = false;
 let lastSelectorHits: Record<string, number> = {};
+let pageObserver: MutationObserver | null = null;
+let routeWatcherInstalled = false;
 const adapter: PlatformAdapter | null = getPlatformAdapter(location.hostname);
 
 /** Boss 页面内容脚本：只读取岗位卡片并提供本地筛选/排队按钮，不执行发送动作。 */
@@ -24,12 +26,9 @@ async function init(): Promise<void> {
   settings = await chrome.runtime.sendMessage<Settings>({ type: "GET_SETTINGS" });
   window.addEventListener("message", onPageBridgeMessage);
   window.postMessage({ source: "boss-job-helper-content", type: "READY" }, location.origin);
-  injectToolbar();
-  scanCards();
-  if (adapter.detail && isDetailPage()) injectDetailToolbar();
-  const observer = new MutationObserver(() => scanCards());
-  observer.observe(document.body, { childList: true, subtree: true });
-  window.setInterval(scanCards, 2500);
+  installRouteWatcher();
+  syncRouteUi();
+  window.setInterval(() => { if (isAllowedPage()) scanCards(); }, 2500);
   chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
     const type = (message as { type?: string }).type;
     if (type === "SETTINGS_UPDATED") {
@@ -42,6 +41,42 @@ async function init(): Promise<void> {
       sendResponse({ platform: adapter.label, adapterKey: adapter.key, route: `${location.origin}${location.pathname}`, cardCount: lastCardCount, matchCount, lastScanAt, selectorHits: lastSelectorHits });
     }
   });
+}
+
+function isAllowedPage(): boolean {
+  if (!adapter?.routes) return Boolean(adapter);
+  return [...adapter.routes.list, ...adapter.routes.detail].some((route) => route.test(location.pathname));
+}
+
+/** 监听招聘网站 SPA 路由变化，岗位页显示工具条，聊天/个人页自动移除。 */
+function installRouteWatcher(): void {
+  if (routeWatcherInstalled) return;
+  routeWatcherInstalled = true;
+  for (const method of ["pushState", "replaceState"] as const) {
+    const original = history[method];
+    history[method] = function routeAwareHistory(this: History, ...args: Parameters<History[typeof method]>): void {
+      original.apply(this, args);
+      window.setTimeout(syncRouteUi, 0);
+    } as History[typeof method];
+  }
+  window.addEventListener("popstate", () => window.setTimeout(syncRouteUi, 0));
+  window.addEventListener("hashchange", () => window.setTimeout(syncRouteUi, 0));
+}
+
+function syncRouteUi(): void {
+  if (!isAllowedPage()) {
+    document.querySelectorAll(".bjh-toolbar").forEach((node) => node.remove());
+    pageObserver?.disconnect();
+    pageObserver = null;
+    return;
+  }
+  injectToolbar();
+  if (adapter?.detail && isDetailPage()) injectDetailToolbar();
+  if (!pageObserver) {
+    pageObserver = new MutationObserver(() => scanCards());
+    pageObserver.observe(document.body, { childList: true, subtree: true });
+  }
+  scanCards();
 }
 
 function scanCards(): void {
