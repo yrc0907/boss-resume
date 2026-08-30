@@ -9,6 +9,11 @@ const payload = {
     jobList: [
       {
         encryptJobId: "job-001",
+        jobName: "货代操作主管",
+        brandName: "海联供应链",
+      },
+      {
+        encryptJobId: "job-001",
         securityId: "security-001",
         lid: "lid-001",
         jobName: "货代操作主管",
@@ -20,11 +25,6 @@ const payload = {
         brandName: "海联供应链",
         bossName: "李经理",
         activeTimeDesc: "今日活跃",
-      },
-      {
-        encryptJobId: "job-001",
-        jobName: "货代操作主管",
-        brandName: "海联供应链",
       },
     ],
   },

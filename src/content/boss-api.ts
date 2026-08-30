@@ -10,17 +10,14 @@ const RECRUITER_KEYS = ["bossName", "bossNickName", "recruiter", "boss"];
 
 /** 从 Boss 岗位接口响应中递归提取岗位字段，只保留公开岗位信息。 */
 export function extractBossJobs(payload: unknown, sourceUrl: string): JobCandidate[] {
-  const result: JobCandidate[] = [];
-  const seen = new Set<string>();
+  const result = new Map<string, JobCandidate>();
   walk(payload, 0, (candidate) => {
     const title = pick(candidate, TITLE_KEYS);
     const company = pick(candidate, COMPANY_KEYS);
     if (!title || !company) return;
     const identityKeys = ID_KEYS.map((key) => pick(candidate, [key])).filter(Boolean);
     const id = identityKeys[0] || makeSignature(title, company, pick(candidate, SALARY_KEYS));
-    if (seen.has(id)) return;
-    seen.add(id);
-    result.push({
+    const next: JobCandidate = {
       id,
       title,
       company,
@@ -41,9 +38,11 @@ export function extractBossJobs(payload: unknown, sourceUrl: string): JobCandida
       source: "api",
       sourceUrl,
       identityKeys,
-    });
+    };
+    const previous = result.get(id);
+    result.set(id, previous ? mergeApiJob(previous, next) : next);
   });
-  return result;
+  return Array.from(result.values());
 }
 
 /** 用强 ID 优先、岗位名加公司签名兜底，把接口岗位合并到 DOM 岗位。 */
@@ -101,6 +100,27 @@ function pick(candidate: Record<string, unknown>, keys: string[]): string {
 
 function makeSignature(title: string, company: string, salary: string): string {
   return `${title}|${company}|${salary}`.toLowerCase().replace(/\s+/g, "");
+}
+
+/** 接口摘要和详情可能分批到达，按非空字段合并，避免先到摘要覆盖完整信息。 */
+function mergeApiJob(previous: JobCandidate, next: JobCandidate): JobCandidate {
+  return {
+    ...previous,
+    title: next.title || previous.title,
+    company: next.company || previous.company,
+    salary: next.salary || previous.salary,
+    location: next.location || previous.location,
+    experience: next.experience || previous.experience,
+    education: next.education || previous.education,
+    description: next.description || previous.description,
+    recruiter: next.recruiter || previous.recruiter,
+    recruiterTitle: next.recruiterTitle || previous.recruiterTitle,
+    activeTime: next.activeTime || previous.activeTime,
+    detailUrl: next.detailUrl || previous.detailUrl,
+    identityKeys: Array.from(new Set([...(previous.identityKeys || []), ...(next.identityKeys || [])])),
+    tags: Array.from(new Set([...(previous.tags || []), ...(next.tags || [])].filter(Boolean))),
+    source: "api",
+  };
 }
 
 function safeUrl(value: string): boolean {
