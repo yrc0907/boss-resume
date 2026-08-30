@@ -143,3 +143,11 @@
 - 方案：增加无网络契约测试，固定最小 Boss JSON 响应，验证 ID 去重、字段提取、DOM/API 合并和全部平台 hostname 路由。
 - 性能变化：测试只处理内存 fixture，不影响扩展运行时性能。
 - 验证：`pnpm test:api` 和 `pnpm test` 通过；真实页面字段仍需用户登录态验收。
+
+### scenario_id: PAGE_BRIDGE_ORIGIN_CHECK
+
+- 问题：同页脚本可以调用 `window.postMessage`，若只检查自定义 source 字段，可能伪造岗位事件。
+- 根因：页面消息总线本身不提供业务身份认证，扩展必须先校验事件来源。
+- 方案：内容脚本同时校验 `event.source === window` 和 `event.origin === location.origin`，并继续只提取公开岗位字段。
+- 性能变化：每条消息增加一次字符串比较，成本可忽略。
+- 验证：类型检查、构建和静态测试通过。

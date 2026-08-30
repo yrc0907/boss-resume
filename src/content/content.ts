@@ -182,7 +182,7 @@ function updateToolbarCount(count: number): void {
 /** 接收页面主世界的只读岗位接口事件，更新本地数据池后重新绑定当前卡片。 */
 function onPageBridgeMessage(event: MessageEvent<unknown>): void {
   const message = event.data as { source?: string; type?: string; url?: string; payload?: unknown } | null;
-  if (event.source !== window || message?.source !== "boss-job-helper-page" || message.type !== "BOSS_JOB_API_RESPONSE") return;
+  if (event.source !== window || event.origin !== location.origin || message?.source !== "boss-job-helper-page" || message.type !== "BOSS_JOB_API_RESPONSE") return;
   const jobs = extractBossJobs(message.payload, message.url || location.href);
   if (!jobs.length) return;
   let changed = false;

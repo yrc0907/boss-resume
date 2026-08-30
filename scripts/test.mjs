@@ -17,6 +17,7 @@ assert.doesNotMatch(content, /立即沟通/);
 assert.doesNotMatch(content, /fetch\(/);
 assert.match(bridge, /BOSS_JOB_API_RESPONSE/);
 assert.match(bridge, /pendingMessages/);
+assert.match(content, /event\.origin\s*!==\s*location\.origin/);
 assert.doesNotMatch(bridge, /\.click\(/);
 assert.doesNotMatch(bridge, /method\s*:\s*["']POST/i);
 console.log("Local extension checks passed");
