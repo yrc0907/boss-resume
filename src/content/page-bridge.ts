@@ -1,9 +1,21 @@
 const BRIDGE_FLAG = "__bossJobHelperPageBridgeInstalled__";
 const MESSAGE_SOURCE = "boss-job-helper-page";
+const CONTENT_SOURCE = "boss-job-helper-content";
+let contentReady = false;
+const pendingMessages: Array<{ url: string; payload: unknown }> = [];
 
 /** 页面主世界只读桥接：观察 Boss 岗位 GET 响应并转发脱敏后的 JSON，不修改请求、不发起新请求。 */
 if (!(window as unknown as Record<string, unknown>)[BRIDGE_FLAG]) {
   (window as unknown as Record<string, unknown>)[BRIDGE_FLAG] = true;
+  window.addEventListener("message", (event) => {
+    const message = event.data as { source?: string; type?: string } | null;
+    if (event.source !== window || message?.source !== CONTENT_SOURCE || message.type !== "READY") return;
+    contentReady = true;
+    while (pendingMessages.length) {
+      const next = pendingMessages.shift();
+      if (next) publishNow(next.url, next.payload);
+    }
+  });
   installFetchObserver();
   installXhrObserver();
 }
@@ -13,6 +25,15 @@ function isJobApi(url: string): boolean {
 }
 
 function publish(url: string, payload: unknown): void {
+  if (!contentReady) {
+    pendingMessages.push({ url, payload });
+    if (pendingMessages.length > 20) pendingMessages.shift();
+    return;
+  }
+  publishNow(url, payload);
+}
+
+function publishNow(url: string, payload: unknown): void {
   window.postMessage({ source: MESSAGE_SOURCE, type: "BOSS_JOB_API_RESPONSE", url, payload }, location.origin);
 }
 

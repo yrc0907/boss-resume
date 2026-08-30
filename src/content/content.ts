@@ -18,6 +18,7 @@ async function init(): Promise<void> {
   if (!adapter) return;
   settings = await chrome.runtime.sendMessage<Settings>({ type: "GET_SETTINGS" });
   window.addEventListener("message", onPageBridgeMessage);
+  window.postMessage({ source: "boss-job-helper-content", type: "READY" }, location.origin);
   injectToolbar();
   scanCards();
   if (adapter.detail && isDetailPage()) injectDetailToolbar();

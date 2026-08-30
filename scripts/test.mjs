@@ -16,6 +16,7 @@ assert.match(content, /bjh-add-all/);
 assert.doesNotMatch(content, /立即沟通/);
 assert.doesNotMatch(content, /fetch\(/);
 assert.match(bridge, /BOSS_JOB_API_RESPONSE/);
+assert.match(bridge, /pendingMessages/);
 assert.doesNotMatch(bridge, /\.click\(/);
 assert.doesNotMatch(bridge, /method\s*:\s*["']POST/i);
 console.log("Local extension checks passed");
