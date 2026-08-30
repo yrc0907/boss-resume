@@ -11,6 +11,7 @@ let settings: Settings = DEFAULT_SETTINGS;
 let matchCount = 0;
 let lastCardCount = 0;
 let lastScanAt = "";
+let preloadRunning = false;
 const adapter: PlatformAdapter | null = getPlatformAdapter(location.hostname);
 
 /** Boss 页面内容脚本：只读取岗位卡片并提供本地筛选/排队按钮，不执行发送动作。 */
@@ -136,7 +137,8 @@ function injectToolbar(): void {
   if (document.querySelector(".bjh-toolbar")) return;
   const toolbar = document.createElement("aside");
   toolbar.className = "bjh-toolbar";
-  toolbar.innerHTML = `<strong>${adapter?.label ?? "投递准备"}</strong><span class="bjh-toolbar-count">扫描中</span><button type="button" class="bjh-add-all">加入全部匹配</button><button type="button" class="bjh-refresh">重新扫描</button>`;
+  toolbar.innerHTML = `<strong>${adapter?.label ?? "投递准备"}</strong><span class="bjh-toolbar-count">扫描中</span><button type="button" class="bjh-load-more">加载更多岗位</button><button type="button" class="bjh-add-all">加入全部匹配</button><button type="button" class="bjh-refresh">重新扫描</button>`;
+  toolbar.querySelector(".bjh-load-more")?.addEventListener("click", () => void preloadJobs());
   toolbar.querySelector(".bjh-add-all")?.addEventListener("click", () => void addAllMatched());
   toolbar.querySelector(".bjh-refresh")?.addEventListener("click", () => {
     resetDecorations();
@@ -168,6 +170,39 @@ async function addAllMatched(): Promise<void> {
     button.disabled = false;
     button.textContent = "加入全部匹配";
   }, 1800);
+}
+
+/** 逐步滚动触发招聘网站懒加载，达到稳定次数后自动停止，不触发任何投递动作。 */
+async function preloadJobs(): Promise<void> {
+  const button = document.querySelector(".bjh-load-more") as HTMLButtonElement | null;
+  if (!button || preloadRunning) return;
+  preloadRunning = true;
+  button.disabled = true;
+  const initialCount = lastCardCount;
+  let stableRounds = 0;
+  let previousCount = initialCount;
+  try {
+    for (let round = 0; round < 40; round += 1) {
+      window.scrollBy({ top: Math.max(320, Math.floor(window.innerHeight * 0.9)), behavior: "smooth" });
+      await sleep(450);
+      scanCards();
+      if (lastCardCount === previousCount) stableRounds += 1;
+      else stableRounds = 0;
+      previousCount = lastCardCount;
+      if (stableRounds >= 3) break;
+    }
+    button.textContent = `已加载 ${lastCardCount} 个`;
+  } finally {
+    window.setTimeout(() => {
+      preloadRunning = false;
+      button.disabled = false;
+      button.textContent = "加载更多岗位";
+    }, 1800);
+  }
+}
+
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 function isErrorResponse(value: unknown): value is { error: string } {
