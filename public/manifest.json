@@ -25,7 +25,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.zhipin.com/*", "https://*.zhipin.com/*"],
+      "matches": ["https://www.zhipin.com/*", "https://*.zhipin.com/*", "https://www.liepin.com/*", "https://*.liepin.com/*"],
       "js": ["content/page-bridge.js"],
       "run_at": "document_start",
       "world": "MAIN"

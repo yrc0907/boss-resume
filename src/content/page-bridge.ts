@@ -21,7 +21,7 @@ if (!(window as unknown as Record<string, unknown>)[BRIDGE_FLAG]) {
 }
 
 function isJobApi(url: string): boolean {
-  return /zhipin\.com\/wapi\/zpgeek\/job\/(?:detail|recommend|list)|\/wapi\/zpgeek\/job\/detail\.json/i.test(url);
+  return /zhipin\.com\/wapi\/zpgeek\/job\/(?:detail|recommend|list)|\/wapi\/zpgeek\/job\/detail\.json|liepin\.com\/.*com\.liepin\.searchfront4c\.pc-search-job/i.test(url);
 }
 
 function publish(url: string, payload: unknown): void {
@@ -34,7 +34,7 @@ function publish(url: string, payload: unknown): void {
 }
 
 function publishNow(url: string, payload: unknown): void {
-  window.postMessage({ source: MESSAGE_SOURCE, type: "BOSS_JOB_API_RESPONSE", url, payload }, location.origin);
+  window.postMessage({ source: MESSAGE_SOURCE, type: "JOB_API_RESPONSE", url, payload }, location.origin);
 }
 
 function installFetchObserver(): void {

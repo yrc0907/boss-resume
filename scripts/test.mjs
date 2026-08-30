@@ -21,7 +21,7 @@ assert.doesNotMatch(content, /fetch\(/);
 for (const forbidden of [/sendMsg/i, /sendResume/i, /\.btn-send/i, /form\.submit/i, /submit\(/i]) {
   assert.doesNotMatch(contentSource, forbidden, `forbidden outbound action in content script: ${forbidden}`);
 }
-assert.match(bridge, /BOSS_JOB_API_RESPONSE/);
+assert.match(bridge, /JOB_API_RESPONSE/);
 assert.match(bridge, /pendingMessages/);
 assert.match(content, /event\.origin\s*!==\s*location\.origin/);
 assert.doesNotMatch(bridge, /\.click\(/);

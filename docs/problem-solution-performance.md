@@ -194,6 +194,14 @@
 - 性能变化：只对匹配岗位接口 clone 一次响应并递归遍历有限深度，列表扫描仍由当前平台适配器控制。
 - 验证：本地构建、类型检查和 localhost 浏览器验收通过；真实 Boss 接口字段需要用户登录后验收。
 
+### scenario_id: LIEPIN_API_READONLY_MERGE
+
+- 问题：猎聘岗位卡片的公开字段不稳定，单靠 DOM 很难稳定取得岗位、公司和招聘者信息。
+- 根因：猎聘搜索接口把字段拆在 `job/comp/recruiter` 三个对象中，列表卡片还会按懒加载变化。
+- 方案：页面桥接只观察猎聘搜索 GET 响应，`platform-api.ts` 解析 `jobCardList` 并输出统一岗位对象；不监听聊天或投递接口。
+- 性能变化：只对匹配的搜索响应做 JSON 解析，未识别结构直接忽略。
+- 验证：契约测试覆盖 `data.data.jobCardList` 结构；真实猎聘页面需登录态验收。
+
 ### scenario_id: BOSS_BRIDGE_HANDSHAKE
 
 - 问题：页面主世界桥接在 `document-start` 执行，内容脚本在 `document-idle` 执行，首批接口响应可能早于监听器到达。
