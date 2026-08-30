@@ -53,7 +53,7 @@ docs/             开发记录和问题解决记录
 
 每个平台提供独立的 `host + cardSelectors + fieldSelectors` 配置。通用层只处理评分、黑名单、去重、队列和本地记录；平台层只处理岗位卡片识别和页面填充。
 
-当前适配器配置位于 `src/content/adapters/`，每个平台一个文件，由 `index.ts` 统一注册并通过 `getPlatformAdapter(location.hostname)` 选择当前站点。选择器采用稳定 class、`data-*` 属性和语义兜底的组合；平台改版时只调整对应适配器和 fixture。
+当前适配器配置位于 `src/content/adapters/`，每个平台一个文件，由 `index.ts` 统一注册并通过 `getPlatformAdapter(location.hostname)` 选择当前站点。Boss 额外使用 `page-bridge.ts` 在页面主世界只读观察岗位 GET 响应，再由 `boss-api.ts` 递归提取并按 ID/岗位名/公司签名合并到 DOM 卡片。选择器采用稳定 class、`data-*` 属性和语义兜底的组合；平台改版时只调整对应适配器和 fixture。
 
 平台适配必须满足：
 
@@ -61,6 +61,7 @@ docs/             开发记录和问题解决记录
 2. 找不到稳定字段时显示“待确认”，不猜测薪资、地点或公司信息。
 3. 所有写入页面的动作都必须是用户点击触发的准备动作。
 4. 不保存 Cookie、密码、验证码或完整浏览历史。
+5. 页面桥接只读取岗位 GET 响应的公开字段，不改写请求、不发起新请求、不监听聊天或投递接口。
 
 ## 6. 开发与验收
 

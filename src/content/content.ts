@@ -2,9 +2,11 @@ import { scoreJob } from "../shared/scoring";
 import { DEFAULT_SETTINGS, type JobCandidate, type Settings } from "../shared/types";
 import { getPlatformAdapter } from "./adapters";
 import type { PlatformAdapter } from "./adapters/types";
+import { extractBossJobs, findMatchingBossJob, mergeJobCandidate } from "./boss-api";
 
 const marked = new Set<Element>();
 const matchedJobs = new Map<Element, JobCandidate>();
+const apiJobs = new Map<string, JobCandidate>();
 let settings: Settings = DEFAULT_SETTINGS;
 let matchCount = 0;
 const adapter: PlatformAdapter | null = getPlatformAdapter(location.hostname);
@@ -15,8 +17,10 @@ void init();
 async function init(): Promise<void> {
   if (!adapter) return;
   settings = await chrome.runtime.sendMessage<Settings>({ type: "GET_SETTINGS" });
+  window.addEventListener("message", onPageBridgeMessage);
   injectToolbar();
   scanCards();
+  if (adapter.detail && isDetailPage()) injectDetailToolbar();
   const observer = new MutationObserver(() => scanCards());
   observer.observe(document.body, { childList: true, subtree: true });
   window.setInterval(scanCards, 2500);
@@ -61,7 +65,7 @@ function parseJob(card: Element): JobCandidate | null {
   const company = read(...adapter.fields.company);
   if (!title || !company) return null;
   const detailUrl = (card.querySelector("a[href]") as HTMLAnchorElement | null)?.href ?? location.href;
-  return {
+  const domJob: JobCandidate = {
     id: card.getAttribute("data-job-id") || card.getAttribute("data-id") || detailUrl,
     title,
     company,
@@ -75,7 +79,12 @@ function parseJob(card: Element): JobCandidate | null {
     score: 0,
     status: "new",
     capturedAt: new Date().toISOString(),
+    platform: adapter.key,
+    source: "dom",
+    sourceUrl: location.href,
   };
+  const apiJob = adapter.key === "zhipin" ? findMatchingBossJob(domJob, apiJobs.values()) : null;
+  return apiJob ? mergeJobCandidate(domJob, apiJob) : domJob;
 }
 
 function containsBlacklist(job: JobCandidate): boolean {
@@ -157,4 +166,87 @@ function isErrorResponse(value: unknown): value is { error: string } {
 function updateToolbarCount(count: number): void {
   const node = document.querySelector(".bjh-toolbar-count");
   if (node) node.textContent = `${count} 个匹配岗位`;
+}
+
+/** 接收页面主世界的只读岗位接口事件，更新本地数据池后重新绑定当前卡片。 */
+function onPageBridgeMessage(event: MessageEvent<unknown>): void {
+  const message = event.data as { source?: string; type?: string; url?: string; payload?: unknown } | null;
+  if (event.source !== window || message?.source !== "boss-job-helper-page" || message.type !== "BOSS_JOB_API_RESPONSE") return;
+  const jobs = extractBossJobs(message.payload, message.url || location.href);
+  if (!jobs.length) return;
+  let changed = false;
+  for (const job of jobs) {
+    const previous = apiJobs.get(job.id);
+    if (!previous || previous.description !== job.description || previous.salary !== job.salary) {
+      apiJobs.set(job.id, job);
+      changed = true;
+    }
+  }
+  if (changed) {
+    resetDecorations();
+    scanCards();
+    updateDetailToolbar();
+  }
+}
+
+function isDetailPage(): boolean {
+  return /^\/job_detail(?:\/|$)/.test(location.pathname);
+}
+
+/** 详情页只读诊断：展示岗位信息和沟通/网申状态，提供加入本地队列按钮。 */
+function injectDetailToolbar(): void {
+  if (document.querySelector(".bjh-detail-toolbar") || !adapter?.detail) return;
+  const toolbar = document.createElement("aside");
+  toolbar.className = "bjh-toolbar bjh-detail-toolbar";
+  toolbar.innerHTML = `<strong>岗位详情</strong><span class="bjh-detail-status">读取中</span><button type="button" class="bjh-detail-queue">加入投递准备</button>`;
+  toolbar.querySelector(".bjh-detail-queue")?.addEventListener("click", () => {
+    const job = parseDetailJob();
+    if (!job) return;
+    void chrome.runtime.sendMessage({ type: "ADD_TO_QUEUE", job });
+  });
+  document.body.append(toolbar);
+  updateDetailToolbar();
+}
+
+function updateDetailToolbar(): void {
+  const status = document.querySelector(".bjh-detail-status");
+  if (!status) return;
+  const job = parseDetailJob();
+  if (!job) {
+    status.textContent = "未识别岗位详情";
+    return;
+  }
+  const actionText = adapter?.detail?.action.map((selector) => document.querySelector(selector)?.textContent?.trim() || "").find(Boolean) || "";
+  status.textContent = `${job.title} · ${actionText.includes("立即沟通") ? "可沟通" : "需人工确认"}`;
+}
+
+function parseDetailJob(): JobCandidate | null {
+  if (!adapter?.detail) return null;
+  const read = (selectors: string[]): string => selectors.map((selector) => document.querySelector(selector)?.textContent?.trim() || "").find(Boolean)?.replace(/\s+/g, " ") || "";
+  const title = read(adapter.detail.title);
+  const company = read(adapter.detail.company);
+  if (!title || !company) return null;
+  const apiJob = Array.from(apiJobs.values()).find((job) => job.title === title && job.company === company);
+  const job: JobCandidate = {
+    id: apiJob?.id || `${location.origin}${location.pathname}`,
+    title,
+    company,
+    salary: read(adapter.detail.salary),
+    location: read(adapter.detail.location),
+    experience: "",
+    education: "",
+    tags: [],
+    detailUrl: location.href,
+    description: read(adapter.detail.description),
+    score: 0,
+    status: "new",
+    capturedAt: new Date().toISOString(),
+    platform: adapter.key,
+    recruiter: read(adapter.detail.recruiter),
+    activeTime: read(adapter.detail.activeTime),
+    source: apiJob ? "merged" : "dom",
+    sourceUrl: location.href,
+  };
+  job.score = scoreJob(job, settings);
+  return job;
 }

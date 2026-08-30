@@ -5,6 +5,16 @@ export interface PlatformAdapter {
   hosts: string[];
   cardSelectors: string[];
   fields: Record<"title" | "company" | "salary" | "location" | "description" | "experience" | "education" | "tags", string[]>;
+  detail?: {
+    title: string[];
+    company: string[];
+    salary: string[];
+    location: string[];
+    description: string[];
+    action: string[];
+    recruiter: string[];
+    activeTime: string[];
+  };
 }
 
 type DetailFields = Omit<PlatformAdapter["fields"], "title" | "company">;

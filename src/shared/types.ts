@@ -13,6 +13,12 @@ export interface JobCandidate {
   score: number;
   status: "new" | "queued" | "prepared" | "skipped";
   capturedAt: string;
+  platform?: string;
+  recruiter?: string;
+  recruiterTitle?: string;
+  activeTime?: string;
+  source?: "dom" | "api" | "merged";
+  sourceUrl?: string;
 }
 
 /** 用户筛选设置：只影响本地匹配与排序，不触发任何外部发送。 */
