@@ -1,3 +1,4 @@
+/** 多平台接口解析模块：按平台分派公开岗位响应解析器。 */
 import type { JobCandidate } from "../shared/types";
 import { extractBossJobs } from "./boss-api";
 

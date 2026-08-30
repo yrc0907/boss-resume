@@ -1,3 +1,4 @@
+/** 页面主世界桥接模块：只读观察岗位 GET 响应并转发给隔离内容脚本。 */
 const BRIDGE_FLAG = "__bossJobHelperPageBridgeInstalled__";
 const MESSAGE_SOURCE = "boss-job-helper-page";
 const CONTENT_SOURCE = "boss-job-helper-content";

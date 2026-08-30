@@ -1,3 +1,4 @@
+/** 后台入口：负责本地设置、候选队列和扩展内部消息。 */
 import { renderGreeting } from "../shared/scoring";
 import { DEFAULT_SETTINGS, type QueueItem, type QueueMutationResult, type RuntimeMessage, type Settings } from "../shared/types";
 

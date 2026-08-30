@@ -1,3 +1,4 @@
+/** 实习僧适配器模块：描述岗位卡片字段。 */
 import { commonFields, type PlatformAdapter } from "./types";
 
 /** 实习僧岗位卡片适配器。 */

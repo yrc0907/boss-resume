@@ -1,3 +1,4 @@
+/** 猎聘适配器模块：描述岗位卡片字段。 */
 import { commonFields, type PlatformAdapter } from "./types";
 
 /** 猎聘岗位卡片适配器。 */

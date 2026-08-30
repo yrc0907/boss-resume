@@ -1,3 +1,4 @@
+/** 牛客适配器模块：描述岗位卡片字段。 */
 import { commonFields, type PlatformAdapter } from "./types";
 
 /** 牛客岗位卡片适配器。 */

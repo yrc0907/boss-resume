@@ -1,3 +1,4 @@
+/** Chrome 扩展 API 的最小类型声明，避免业务层依赖外部类型包。 */
 declare namespace chrome {
   namespace storage {
     const local: {

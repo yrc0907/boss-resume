@@ -1,3 +1,4 @@
+/** 应届生求职网适配器模块：描述岗位卡片字段。 */
 import { commonFields, type PlatformAdapter } from "./types";
 
 /** 应届生求职网岗位卡片适配器。 */

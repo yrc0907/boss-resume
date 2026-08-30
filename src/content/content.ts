@@ -1,3 +1,4 @@
+/** 内容脚本入口：协调平台解析、筛选、队列按钮和路由生命周期。 */
 import { scoreJob } from "../shared/scoring";
 import { DEFAULT_SETTINGS, type JobCandidate, type Settings } from "../shared/types";
 import { getPlatformAdapter } from "./adapters";

@@ -1,3 +1,4 @@
+/** Boss 岗位接口解析模块：只提取公开岗位数据并生成统一对象。 */
 import type { JobCandidate } from "../shared/types";
 
 const TITLE_KEYS = ["jobName", "jobTitle", "positionName", "position", "title"];

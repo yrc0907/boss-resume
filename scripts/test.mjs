@@ -1,3 +1,4 @@
+// 静态验收脚本：检查 Manifest、构建产物和禁止外发动作。
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 

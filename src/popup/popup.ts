@@ -1,3 +1,4 @@
+/** 扩展弹窗入口：管理筛选设置、候选队列和本地导出。 */
 import { DEFAULT_SETTINGS, type QueueItem, type ResumeProfile, type Settings } from "../shared/types";
 
 let currentResumeProfiles: ResumeProfile[] = DEFAULT_SETTINGS.resumeProfiles;

@@ -1,3 +1,4 @@
+/** 纯本地岗位评分模块：不访问网络、不调用模型。 */
 import type { JobCandidate, Settings } from "./types";
 
 /** 根据岗位文本计算本地可解释分数；不调用模型、不访问外部接口。 */

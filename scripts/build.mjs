@@ -1,3 +1,4 @@
+// 构建脚本：复制静态资源并打包四个浏览器入口。
 import { build } from "esbuild";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";

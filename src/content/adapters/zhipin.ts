@@ -1,3 +1,4 @@
+/** Boss 直聘适配器模块：描述列表和详情字段。 */
 import { commonFields, type PlatformAdapter } from "./types";
 
 /** Boss 直聘岗位卡片适配器。 */

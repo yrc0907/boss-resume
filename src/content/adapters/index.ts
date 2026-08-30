@@ -19,4 +19,5 @@ export function getPlatformAdapter(hostname: string): PlatformAdapter | null {
   const normalized = hostname.toLowerCase().replace(/^www\./, "");
   return PLATFORM_ADAPTERS.find((adapter) => adapter.hosts.some((host) => normalized === host || normalized.endsWith(`.${host}`))) ?? null;
 }
+/** 平台适配器注册模块：按 hostname 选择站点配置。 */
 import { demoAdapter } from "./demo";
