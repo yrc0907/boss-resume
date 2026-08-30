@@ -82,13 +82,24 @@ function syncRouteUi(): void {
     pageObserver = null;
     return;
   }
-  injectToolbar();
-  if (adapter?.detail && isDetailPage()) injectDetailToolbar();
-  if (!pageObserver) {
-    pageObserver = new MutationObserver(() => scanCards());
-    pageObserver.observe(document.body, { childList: true, subtree: true });
+  const listPage = !adapter?.routes || isListPage();
+  if (listPage) {
+    document.querySelector(".bjh-detail-toolbar")?.remove();
+    injectToolbar();
+    if (!pageObserver) {
+      pageObserver = new MutationObserver(() => scanCards());
+      pageObserver.observe(document.body, { childList: true, subtree: true });
+    }
+    scanCards();
+    return;
   }
-  scanCards();
+  document.querySelector(".bjh-list-toolbar")?.remove();
+  pageObserver?.disconnect();
+  pageObserver = null;
+  if (adapter?.detail && isDetailPage()) {
+    injectDetailToolbar();
+    updateDetailToolbar();
+  }
 }
 
 function isListPage(): boolean {
@@ -168,7 +179,7 @@ function decorateCard(card: Element, job: JobCandidate): void {
 function injectToolbar(): void {
   if (document.querySelector(".bjh-toolbar")) return;
   const toolbar = document.createElement("aside");
-  toolbar.className = "bjh-toolbar";
+  toolbar.className = "bjh-toolbar bjh-list-toolbar";
   toolbar.innerHTML = `<strong>${adapter?.label ?? "投递准备"}</strong><span class="bjh-toolbar-count">扫描中</span><button type="button" class="bjh-load-more">加载更多岗位</button><button type="button" class="bjh-add-all">加入全部匹配</button><button type="button" class="bjh-refresh">重新扫描</button>`;
   toolbar.querySelector(".bjh-load-more")?.addEventListener("click", () => void preloadJobs());
   toolbar.querySelector(".bjh-add-all")?.addEventListener("click", () => void addAllMatched());
@@ -188,7 +199,7 @@ function resetDecorations(): void {
 
 /** 将当前页面已经通过筛选的岗位批量加入本地队列，避免逐卡点击但不触发任何外部投递。 */
 async function addAllMatched(): Promise<void> {
-  const button = document.querySelector(".bjh-add-all") as HTMLButtonElement | null;
+  const button = document.querySelector(".bjh-list-toolbar .bjh-add-all") as HTMLButtonElement | null;
   if (!button || !matchedJobs.size) return;
   button.disabled = true;
   const jobs = Array.from(matchedJobs.values());
@@ -206,7 +217,7 @@ async function addAllMatched(): Promise<void> {
 
 /** 逐步滚动触发招聘网站懒加载，达到稳定次数后自动停止，不触发任何投递动作。 */
 async function preloadJobs(): Promise<void> {
-  const button = document.querySelector(".bjh-load-more") as HTMLButtonElement | null;
+  const button = document.querySelector(".bjh-list-toolbar .bjh-load-more") as HTMLButtonElement | null;
   if (!button || preloadRunning) return;
   preloadRunning = true;
   button.disabled = true;
@@ -246,7 +257,7 @@ function isQueueMutation(value: unknown): value is { queue: unknown[]; added: bo
 }
 
 function updateToolbarCount(count: number): void {
-  const node = document.querySelector(".bjh-toolbar-count");
+  const node = document.querySelector(".bjh-list-toolbar .bjh-toolbar-count");
   if (node) node.textContent = lastCardCount ? `${count} 个匹配岗位` : `${adapter?.label ?? "当前页面"} 未识别岗位卡片`;
 }
 
