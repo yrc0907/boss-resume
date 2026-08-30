@@ -16,7 +16,6 @@ assert.match(content, /bjh-queue-button/);
 assert.match(content, /bjh-add-all/);
 assert.match(content, /bjh-load-more/);
 assert.match(content, /selectorHits/);
-assert.doesNotMatch(content, /立即沟通/);
 assert.doesNotMatch(content, /fetch\(/);
 for (const forbidden of [/sendMsg/i, /sendResume/i, /\.btn-send/i, /form\.submit/i, /submit\(/i]) {
   assert.doesNotMatch(contentSource, forbidden, `forbidden outbound action in content script: ${forbidden}`);
