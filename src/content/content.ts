@@ -30,7 +30,7 @@ async function init(): Promise<void> {
 function scanCards(): void {
   if (!adapter) return;
   const cards = Array.from(new Set(adapter.cardSelectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)))));
-  matchCount = 0;
+  matchCount = document.querySelectorAll(".bjh-job-match").length;
   for (const card of cards) {
     const job = parseJob(card);
     if (!job || marked.has(card)) continue;
