@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Boss 投递助手",
+  "version": "0.1.0",
+  "description": "岗位筛选、投递准备与本地记录助手。最终发送由用户手动确认。",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://www.zhipin.com/*", "https://*.zhipin.com/*",
+    "https://www.zhaopin.com/*", "https://*.zhaopin.com/*",
+    "https://www.51job.com/*", "https://*.51job.com/*",
+    "https://www.liepin.com/*", "https://*.liepin.com/*",
+    "https://www.shixiseng.com/*", "https://*.shixiseng.com/*",
+    "https://www.nowcoder.com/*", "https://*.nowcoder.com/*",
+    "https://www.yingjiesheng.com/*", "https://*.yingjiesheng.com/*",
+    "https://www.iguopin.com/*", "https://*.iguopin.com/*",
+    "https://www.lagou.com/*", "https://*.lagou.com/*",
+    "https://www.58.com/*", "https://*.58.com/*",
+    "https://maimai.cn/*", "https://*.maimai.cn/*"
+  ],
+  "background": { "service_worker": "background/service-worker.js", "type": "module" },
+  "action": {
+    "default_title": "Boss 投递助手",
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.zhipin.com/*", "https://*.zhipin.com/*",
+        "https://www.zhaopin.com/*", "https://*.zhaopin.com/*",
+        "https://www.51job.com/*", "https://*.51job.com/*",
+        "https://www.liepin.com/*", "https://*.liepin.com/*",
+        "https://www.shixiseng.com/*", "https://*.shixiseng.com/*",
+        "https://www.nowcoder.com/*", "https://*.nowcoder.com/*",
+        "https://www.yingjiesheng.com/*", "https://*.yingjiesheng.com/*",
+        "https://www.iguopin.com/*", "https://*.iguopin.com/*",
+        "https://www.lagou.com/*", "https://*.lagou.com/*",
+        "https://www.58.com/*", "https://*.58.com/*",
+        "https://maimai.cn/*", "https://*.maimai.cn/*"
+      ],
+      "js": ["content/content.js"],
+      "css": ["content/content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

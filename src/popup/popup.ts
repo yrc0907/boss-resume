@@ -1,0 +1,100 @@
+import { DEFAULT_SETTINGS, type QueueItem, type Settings } from "../shared/types";
+
+/** 弹窗控制器：编辑本地筛选条件、查看候选队列并复制准备好的招呼语。 */
+void init();
+
+async function init(): Promise<void> {
+  const settings = await chrome.runtime.sendMessage<Settings>({ type: "GET_SETTINGS" });
+  fillSettings({ ...DEFAULT_SETTINGS, ...settings });
+  bindSettings();
+  bindQueueActions();
+  await renderQueue();
+}
+
+function fillSettings(settings: Settings): void {
+  setValue("keywords", settings.keywords.join(", "));
+  setValue("locations", settings.locations.join(", "));
+  setValue("blacklist", settings.blacklist.join(", "));
+  setValue("min-score", String(settings.minScore));
+  setValue("greeting", settings.greetingTemplate);
+}
+
+function bindSettings(): void {
+  document.querySelector("#save-settings")?.addEventListener("click", async () => {
+    const next: Settings = {
+      keywords: splitList(value("keywords")),
+      locations: splitList(value("locations")),
+      blacklist: splitList(value("blacklist")),
+      minScore: Math.max(0, Math.min(100, Number(value("min-score")) || 0)),
+      greetingTemplate: value("greeting") || DEFAULT_SETTINGS.greetingTemplate,
+      maxQueueSize: DEFAULT_SETTINGS.maxQueueSize,
+      autoScan: false,
+    };
+    await chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", settings: next });
+    setStatus("已保存筛选条件", true);
+  });
+}
+
+function bindQueueActions(): void {
+  document.querySelector("#clear-queue")?.addEventListener("click", async () => {
+    await chrome.runtime.sendMessage({ type: "CLEAR_QUEUE" });
+    await renderQueue();
+    setStatus("队列已清空");
+  });
+}
+
+async function renderQueue(): Promise<void> {
+  const queue = await chrome.runtime.sendMessage<QueueItem[]>({ type: "GET_QUEUE" });
+  const list = document.querySelector("#queue-list");
+  const count = document.querySelector("#queue-count");
+  if (!list || !count) return;
+  count.textContent = String(queue.length);
+  list.replaceChildren();
+  if (!queue.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "还没有候选岗位";
+    list.append(empty);
+    return;
+  }
+  for (const item of queue) list.append(createQueueItem(item));
+}
+
+function createQueueItem(item: QueueItem): HTMLElement {
+  const article = document.createElement("article");
+  article.className = "queue-item";
+  article.innerHTML = `<h3></h3><p></p><small>匹配 ${item.job.score} 分 · ${item.state === "queued" ? "待准备" : item.state}</small><div class="queue-actions"><a data-open target="_blank" rel="noreferrer">打开岗位</a><button type="button" data-copy>复制招呼语</button><button type="button" data-remove>移除</button></div>`;
+  article.querySelector("h3")!.textContent = `${item.job.title} · ${item.job.company}`;
+  article.querySelector("p")!.textContent = `${item.job.location || "未知地点"} · ${item.job.salary || "薪资待确认"}`;
+  (article.querySelector("[data-open]") as HTMLAnchorElement).href = item.job.detailUrl;
+  article.querySelector("[data-copy]")?.addEventListener("click", async () => {
+    await navigator.clipboard.writeText(item.preparedGreeting);
+    setStatus("招呼语已复制");
+  });
+  article.querySelector("[data-remove]")?.addEventListener("click", async () => {
+    await chrome.runtime.sendMessage({ type: "REMOVE_FROM_QUEUE", id: item.job.id });
+    await renderQueue();
+  });
+  return article;
+}
+
+function splitList(input: string): string[] {
+  return input.split(/[,，\n]/).map((item) => item.trim()).filter(Boolean);
+}
+
+function value(id: string): string {
+  return (document.querySelector(`#${id}`) as HTMLInputElement | HTMLTextAreaElement | null)?.value.trim() || "";
+}
+
+function setValue(id: string, next: string): void {
+  const element = document.querySelector(`#${id}`) as HTMLInputElement | HTMLTextAreaElement | null;
+  if (element) element.value = next;
+}
+
+function setStatus(message: string, saved = false): void {
+  const status = document.querySelector("#status");
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle("is-saved", saved);
+  window.setTimeout(() => { status.textContent = "准备就绪"; status.classList.remove("is-saved"); }, 1800);
+}
