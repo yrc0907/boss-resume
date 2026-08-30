@@ -82,5 +82,6 @@ const zhipin = getPlatformAdapter("www.zhipin.com");
 assert.ok(zhipin?.routes?.list.some((route) => route.test("/web/geek/jobs")));
 assert.ok(zhipin?.routes?.detail.some((route) => route.test("/job_detail/abc123")));
 assert.equal(zhipin?.routes?.list.some((route) => route.test("/web/geek/chat")), false);
+assert.ok(zhipin?.routes?.list.some((route) => route.test("/web/geek/job")));
 
 console.log("API and adapter contract checks passed");

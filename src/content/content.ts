@@ -16,6 +16,7 @@ let preloadRunning = false;
 let lastSelectorHits: Record<string, number> = {};
 let pageObserver: MutationObserver | null = null;
 let routeWatcherInstalled = false;
+let lastRouteKey = "";
 const adapter: PlatformAdapter | null = getPlatformAdapter(location.hostname);
 
 /** Boss 页面内容脚本：只读取岗位卡片并提供本地筛选/排队按钮，不执行发送动作。 */
@@ -54,16 +55,26 @@ function installRouteWatcher(): void {
   routeWatcherInstalled = true;
   for (const method of ["pushState", "replaceState"] as const) {
     const original = history[method];
-    history[method] = function routeAwareHistory(this: History, ...args: Parameters<History[typeof method]>): void {
-      original.apply(this, args);
-      window.setTimeout(syncRouteUi, 0);
-    } as History[typeof method];
+    try {
+      history[method] = function routeAwareHistory(this: History, ...args: Parameters<History[typeof method]>): void {
+        original.apply(this, args);
+        window.setTimeout(syncRouteUi, 0);
+      } as History[typeof method];
+    } catch {
+      // 某些页面可能冻结 history 方法，保留 popstate 监听作为降级路径。
+    }
   }
   window.addEventListener("popstate", () => window.setTimeout(syncRouteUi, 0));
   window.addEventListener("hashchange", () => window.setTimeout(syncRouteUi, 0));
 }
 
 function syncRouteUi(): void {
+  const currentRouteKey = `${location.pathname}${location.search}`;
+  if (isListPage() && lastRouteKey && lastRouteKey !== currentRouteKey && wasListRoute(lastRouteKey)) {
+    apiJobs.clear();
+    resetDecorations();
+  }
+  lastRouteKey = currentRouteKey;
   if (!isAllowedPage()) {
     document.querySelectorAll(".bjh-toolbar").forEach((node) => node.remove());
     pageObserver?.disconnect();
@@ -77,6 +88,15 @@ function syncRouteUi(): void {
     pageObserver.observe(document.body, { childList: true, subtree: true });
   }
   scanCards();
+}
+
+function isListPage(): boolean {
+  return Boolean(adapter?.routes?.list.some((route) => route.test(location.pathname)));
+}
+
+function wasListRoute(routeKey: string): boolean {
+  const path = routeKey.split("?", 1)[0];
+  return Boolean(adapter?.routes?.list.some((route) => route.test(path)));
 }
 
 function scanCards(): void {
