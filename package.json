@@ -6,10 +6,12 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm build && node scripts/test.mjs"
+    "test": "pnpm build && pnpm test:api && node scripts/test.mjs",
+    "test:api": "tsx scripts/test-api.ts"
   },
   "devDependencies": {
     "esbuild": "^0.23.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.5.4"
   }
 }
