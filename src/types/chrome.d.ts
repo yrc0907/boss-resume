@@ -21,7 +21,7 @@ declare namespace chrome {
   }
   namespace tabs {
     function query(queryInfo: { active?: boolean; currentWindow?: boolean }): Promise<Array<{ id?: number; url?: string }>>;
-    function sendMessage(tabId: number, message: unknown): Promise<unknown>;
+    function sendMessage<T = unknown>(tabId: number, message: unknown): Promise<T>;
   }
   namespace action {
     function setBadgeText(details: { text: string }): Promise<void>;

@@ -9,6 +9,8 @@ const matchedJobs = new Map<Element, JobCandidate>();
 const apiJobs = new Map<string, JobCandidate>();
 let settings: Settings = DEFAULT_SETTINGS;
 let matchCount = 0;
+let lastCardCount = 0;
+let lastScanAt = "";
 const adapter: PlatformAdapter | null = getPlatformAdapter(location.hostname);
 
 /** Boss 页面内容脚本：只读取岗位卡片并提供本地筛选/排队按钮，不执行发送动作。 */
@@ -25,17 +27,25 @@ async function init(): Promise<void> {
   const observer = new MutationObserver(() => scanCards());
   observer.observe(document.body, { childList: true, subtree: true });
   window.setInterval(scanCards, 2500);
-  chrome.runtime.onMessage.addListener((message: unknown) => {
-    if ((message as { type?: string }).type !== "SETTINGS_UPDATED") return;
-    settings = (message as { settings: Settings }).settings;
-    resetDecorations();
-    scanCards();
+  chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+    const type = (message as { type?: string }).type;
+    if (type === "SETTINGS_UPDATED") {
+      settings = (message as { settings: Settings }).settings;
+      resetDecorations();
+      scanCards();
+      return;
+    }
+    if (type === "GET_CONTENT_STATUS") {
+      sendResponse({ platform: adapter.label, cardCount: lastCardCount, matchCount, lastScanAt });
+    }
   });
 }
 
 function scanCards(): void {
   if (!adapter) return;
   const cards = Array.from(new Set(adapter.cardSelectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)))));
+  lastCardCount = cards.length;
+  lastScanAt = new Date().toISOString();
   matchCount = document.querySelectorAll(".bjh-job-match").length;
   for (const card of cards) {
     const job = parseJob(card);
@@ -166,7 +176,7 @@ function isErrorResponse(value: unknown): value is { error: string } {
 
 function updateToolbarCount(count: number): void {
   const node = document.querySelector(".bjh-toolbar-count");
-  if (node) node.textContent = `${count} 个匹配岗位`;
+  if (node) node.textContent = lastCardCount ? `${count} 个匹配岗位` : `${adapter?.label ?? "当前页面"} 未识别岗位卡片`;
 }
 
 /** 接收页面主世界的只读岗位接口事件，更新本地数据池后重新绑定当前卡片。 */

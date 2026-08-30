@@ -9,6 +9,7 @@ async function init(): Promise<void> {
   bindSettings();
   bindQueueActions();
   bindExport();
+  await renderPageStatus();
   await renderQueue();
 }
 
@@ -61,6 +62,21 @@ function bindExport(): void {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     setStatus("CSV 已导出");
   });
+}
+
+/** 读取当前活动标签页的内容脚本状态，帮助用户区分平台未识别和岗位筛选为空。 */
+async function renderPageStatus(): Promise<void> {
+  const statusNode = document.querySelector("#page-status");
+  if (!statusNode) return;
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabId = tabs[0]?.id;
+    if (tabId === undefined) throw new Error("没有活动标签页");
+    const status = await chrome.tabs.sendMessage<{ platform: string; cardCount: number; matchCount: number }>(tabId, { type: "GET_CONTENT_STATUS" });
+    statusNode.textContent = `${status.platform} · 已识别 ${status.cardCount} 个岗位 · 匹配 ${status.matchCount} 个`;
+  } catch {
+    statusNode.textContent = "当前页面未加载投递助手";
+  }
 }
 
 async function renderQueue(): Promise<void> {
