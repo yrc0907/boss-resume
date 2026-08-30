@@ -19,7 +19,7 @@
         <label>招呼语模板<textarea id="greeting" rows="3"></textarea></label>
         <p class="hint">可用变量：{{title}}、{{company}}、{{location}}</p>
       </section>
-      <section class="queue-section"><div class="section-heading"><h2>候选队列</h2><button id="clear-queue" class="text-button danger" type="button">清空</button></div><div id="queue-list" class="queue-list"><p class="empty">还没有候选岗位</p></div></section>
+      <section class="queue-section"><div class="section-heading"><h2>候选队列</h2><div class="section-actions"><button id="export-queue" class="text-button" type="button">导出 CSV</button><button id="clear-queue" class="text-button danger" type="button">清空</button></div></div><div id="queue-list" class="queue-list"><p class="empty">还没有候选岗位</p></div></section>
       <footer class="popup-footer"><span id="status">准备就绪</span><a href="https://www.zhipin.com/" target="_blank" rel="noreferrer">打开 Boss 直聘</a></footer>
     </main>
     <script type="module" src="./popup.js"></script>

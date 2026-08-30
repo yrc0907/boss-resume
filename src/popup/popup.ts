@@ -8,6 +8,7 @@ async function init(): Promise<void> {
   fillSettings({ ...DEFAULT_SETTINGS, ...settings });
   bindSettings();
   bindQueueActions();
+  bindExport();
   await renderQueue();
 }
 
@@ -40,6 +41,25 @@ function bindQueueActions(): void {
     await chrome.runtime.sendMessage({ type: "CLEAR_QUEUE" });
     await renderQueue();
     setStatus("队列已清空");
+  });
+}
+
+/** 将本地候选队列导出为 CSV，供用户离线复盘，不向招聘平台发送任何内容。 */
+function bindExport(): void {
+  document.querySelector("#export-queue")?.addEventListener("click", async () => {
+    const queue = await chrome.runtime.sendMessage<QueueItem[]>({ type: "GET_QUEUE" });
+    const rows = [
+      ["平台岗位", "公司", "地点", "薪资", "匹配分", "状态", "岗位链接"],
+      ...queue.map((item) => [item.job.title, item.job.company, item.job.location, item.job.salary, String(item.job.score), item.state, item.job.detailUrl]),
+    ];
+    const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `boss-job-queue-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus("CSV 已导出");
   });
 }
 
@@ -80,6 +100,10 @@ function createQueueItem(item: QueueItem): HTMLElement {
 
 function splitList(input: string): string[] {
   return input.split(/[,，\n]/).map((item) => item.trim()).filter(Boolean);
+}
+
+function csvCell(value: string): string {
+  return `"${value.replaceAll('"', '""')}"`;
 }
 
 function value(id: string): string {
