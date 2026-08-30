@@ -50,8 +50,8 @@ function bindExport(): void {
   document.querySelector("#export-queue")?.addEventListener("click", async () => {
     const queue = await chrome.runtime.sendMessage<QueueItem[]>({ type: "GET_QUEUE" });
     const rows = [
-      ["平台岗位", "公司", "地点", "薪资", "匹配分", "状态", "岗位链接"],
-      ...queue.map((item) => [item.job.title, item.job.company, item.job.location, item.job.salary, String(item.job.score), item.state, item.job.detailUrl]),
+      ["平台", "岗位", "公司", "地点", "薪资", "匹配分", "状态", "岗位链接"],
+      ...queue.map((item) => [item.job.platform || "未知", item.job.title, item.job.company, item.job.location, item.job.salary, String(item.job.score), item.state, item.job.detailUrl]),
     ];
     const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));

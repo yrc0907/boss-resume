@@ -245,10 +245,18 @@ function injectDetailToolbar(): void {
   const toolbar = document.createElement("aside");
   toolbar.className = "bjh-toolbar bjh-detail-toolbar";
   toolbar.innerHTML = `<strong>岗位详情</strong><span class="bjh-detail-status">读取中</span><button type="button" class="bjh-detail-queue">加入投递准备</button>`;
-  toolbar.querySelector(".bjh-detail-queue")?.addEventListener("click", () => {
+  const queueButton = toolbar.querySelector(".bjh-detail-queue") as HTMLButtonElement | null;
+  queueButton?.addEventListener("click", async () => {
     const job = parseDetailJob();
     if (!job) return;
-    void chrome.runtime.sendMessage({ type: "ADD_TO_QUEUE", job });
+    queueButton.disabled = true;
+    const response = await chrome.runtime.sendMessage<unknown>({ type: "ADD_TO_QUEUE", job });
+    if (isErrorResponse(response)) {
+      queueButton.disabled = false;
+      queueButton.textContent = response.error;
+      return;
+    }
+    queueButton.textContent = "已加入队列";
   });
   document.body.append(toolbar);
   updateDetailToolbar();
@@ -263,7 +271,7 @@ function updateDetailToolbar(): void {
     return;
   }
   const actionText = adapter?.detail?.action.map((selector) => document.querySelector(selector)?.textContent?.trim() || "").find(Boolean) || "";
-  status.textContent = `${job.title} · ${actionText.includes("立即沟通") ? "可沟通" : "需人工确认"}`;
+  status.textContent = `${job.title} · ${job.applicationType === "chat" ? "可沟通" : job.applicationType === "application" ? "可能网申" : "需人工确认"}`;
 }
 
 function parseDetailJob(): JobCandidate | null {
@@ -292,6 +300,7 @@ function parseDetailJob(): JobCandidate | null {
     activeTime: read(adapter.detail.activeTime),
     source: apiJob ? "merged" : "dom",
     sourceUrl: location.href,
+    applicationType: read(adapter.detail.action).includes("立即沟通") ? "chat" : read(adapter.detail.action) ? "application" : "unknown",
   };
   job.score = scoreJob(job, settings);
   return job;
